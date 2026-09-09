@@ -26,38 +26,12 @@ jobs:
       - name: 🔨 Build project
         run: npm run build
 
-      - name: 🔍 Inspect FTP directories
-        run: |
-          echo "=== FTP ROOT ==="
-          curl -s -l "ftp://${{ secrets.FTP_SERVER }}/" --user "${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}" || true
-          echo "=== DOMAINS ==="
-          curl -s -l "ftp://${{ secrets.FTP_SERVER }}/domains/" --user "${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}" || true
-          echo "=== PUBLIC_HTML ==="
-          curl -s -l "ftp://${{ secrets.FTP_SERVER }}/public_html/" --user "${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}" || true
-          echo "=== DOMAINS/MAUSALINAS.COM/PUBLIC_HTML ==="
-          curl -s -l "ftp://${{ secrets.FTP_SERVER }}/domains/mausalinas.com/public_html/" --user "${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}" || true
-
-      - name: 🚀 Deploy via FTP to Hostinger (public_html)
+      - name: 🚀 Deploy via FTP to Hostinger
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./dist/
-          server-dir: ./public_html/
+          server-dir: ./
           dangerous-clean-slate: false
-
-      - name: 🚀 Deploy via FTP to Hostinger (domains/uli.mausalinas.com/public_html)
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: ./dist/
-          server-dir: ./domains/uli.mausalinas.com/public_html/
-          dangerous-clean-slate: false
-
-      - name: 🧹 Remove old .htaccess if causing 403
-        run: |
-          curl -s --user "${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}" "ftp://${{ secrets.FTP_SERVER }}/" -Q "DELE public_html/.htaccess" || true
-          curl -s --user "${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}" "ftp://${{ secrets.FTP_SERVER }}/" -Q "DELE domains/uli.mausalinas.com/public_html/.htaccess" || true
