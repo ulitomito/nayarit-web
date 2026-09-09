@@ -26,6 +26,17 @@ jobs:
       - name: 🔨 Build project
         run: npm run build
 
+      - name: 🔍 Inspect FTP directories
+        run: |
+          echo "=== FTP ROOT ==="
+          curl -s -l "ftp://${{ secrets.FTP_SERVER }}/" --user "${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}" || true
+          echo "=== DOMAINS ==="
+          curl -s -l "ftp://${{ secrets.FTP_SERVER }}/domains/" --user "${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}" || true
+          echo "=== PUBLIC_HTML ==="
+          curl -s -l "ftp://${{ secrets.FTP_SERVER }}/public_html/" --user "${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}" || true
+          echo "=== DOMAINS/MAUSALINAS.COM/PUBLIC_HTML ==="
+          curl -s -l "ftp://${{ secrets.FTP_SERVER }}/domains/mausalinas.com/public_html/" --user "${{ secrets.FTP_USERNAME }}:${{ secrets.FTP_PASSWORD }}" || true
+
       - name: 🚀 Deploy via FTP to Hostinger
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
