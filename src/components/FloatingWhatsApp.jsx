@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { MessageSquare, X, Send, ShieldCheck } from 'lucide-react';
+import { X, Send, ShieldCheck } from 'lucide-react';
 
 const WHATSAPP_LINK = 'https://wa.me/message/GWFSILZHUOI3K1';
 
@@ -124,7 +124,7 @@ export const FloatingWhatsApp = () => {
           <X className="w-7 h-7" />
         ) : (
           <>
-            <MessageSquare className="w-7 h-7" />
+            <i className="fa-brands fa-whatsapp text-3xl"></i>
             <span className="absolute -top-1 -right-1 w-4 h-4 bg-[#C59A47] rounded-full flex items-center justify-center text-[9px] font-bold text-white border-2 border-white animate-bounce">
               1
             </span>

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { MessageSquare, ArrowUp, Phone } from 'lucide-react';
+import { ArrowUp, Phone } from 'lucide-react';
 import { InstagramIcon, FacebookIcon } from './SocialIcons';
 
 const WHATSAPP_LINK = 'https://wa.me/message/GWFSILZHUOI3K1';
@@ -74,7 +74,7 @@ export const Footer = () => {
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#25D366] hover:bg-[#1EBE5D] text-white text-xs font-bold shadow-md transition-all"
             >
-              <MessageSquare className="w-4 h-4" />
+              <i className="fa-brands fa-whatsapp text-base"></i>
               <span>WhatsApp</span>
             </a>
           </div>

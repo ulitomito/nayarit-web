@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { MapPin, ChevronLeft, ChevronRight, MessageSquare, Sparkles } from 'lucide-react';
+import { MapPin, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 
 const WHATSAPP_LINK = 'https://wa.me/message/GWFSILZHUOI3K1';
 
@@ -149,7 +149,7 @@ export const DestinationsGallery = () => {
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#25D366] hover:bg-[#1EBE5D] text-white text-xs font-bold transition-all shadow-sm"
               >
-                <MessageSquare className="w-3.5 h-3.5" />
+                <i className="fa-brands fa-whatsapp text-sm"></i>
                 <span>WhatsApp</span>
               </a>
             </div>

@@ -48,7 +48,7 @@ export const Contact = () => {
               </p>
             </div>
             <div className="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center shrink-0 ml-4 group-hover:scale-110 transition-transform">
-              <MessageSquare className="w-8 h-8 text-white" />
+              <i className="fa-brands fa-whatsapp text-4xl text-white"></i>
             </div>
           </a>
 

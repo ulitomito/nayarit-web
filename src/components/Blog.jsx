@@ -11,7 +11,6 @@ import {
   Lock, 
   Unlock, 
   X, 
-  MessageSquare, 
   ArrowRight,
   Sparkles
 } from 'lucide-react';
@@ -308,7 +307,7 @@ export const Blog = () => {
                 rel="noopener noreferrer"
                 className="w-full sm:w-auto px-6 py-3 rounded-xl bg-[#25D366] text-white font-bold text-xs uppercase flex items-center justify-center gap-2 shadow-sm"
               >
-                <MessageSquare className="w-4 h-4" />
+                <i className="fa-brands fa-whatsapp text-base"></i>
                 <span>Consultar por WhatsApp</span>
               </a>
 

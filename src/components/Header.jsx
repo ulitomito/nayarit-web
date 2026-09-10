@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { MessageSquare, Menu, X, ShieldCheck } from 'lucide-react';
+import { Menu, X, ShieldCheck } from 'lucide-react';
 
 const WHATSAPP_LINK = 'https://wa.me/message/GWFSILZHUOI3K1';
 
@@ -108,7 +108,7 @@ export const Header = () => {
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 px-5 py-2.5 sm:py-3 rounded-full bg-[#25D366] hover:bg-[#1EBE5D] text-white text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all transform hover:scale-105"
             >
-              <MessageSquare className="w-4 h-4" />
+              <i className="fa-brands fa-whatsapp text-base"></i>
               <span className="hidden sm:inline">{t.nav.whatsappBtn}</span>
             </a>
 
@@ -144,7 +144,7 @@ export const Header = () => {
                 rel="noopener noreferrer"
                 className="w-full py-3 rounded-xl bg-[#25D366] text-white font-bold text-xs uppercase flex items-center justify-center gap-2 shadow-sm"
               >
-                <MessageSquare className="w-4 h-4" />
+                <i className="fa-brands fa-whatsapp text-base"></i>
                 <span>WhatsApp (+52 311 118 7229)</span>
               </a>
             </div>
