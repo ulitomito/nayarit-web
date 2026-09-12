@@ -148,14 +148,27 @@ export const BlogProvider = ({ children }) => {
   // Active article selected for full-screen reading
   const [selectedArticle, setSelectedArticle] = useState(null);
 
-  // Admin authentication state
-  const [isAdmin, setIsAdmin] = useState(false);
+  // Admin authentication state with session persistence
+  const [isAdmin, setIsAdmin] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return sessionStorage.getItem('nayarit_is_admin') === 'true';
+    }
+    return false;
+  });
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [loginError, setLoginError] = useState('');
 
   // Admin Post editing modal
   const [showPostModal, setShowPostModal] = useState(false);
   const [editingPost, setEditingPost] = useState(null);
+
+  useEffect(() => {
+    if (isAdmin) {
+      sessionStorage.setItem('nayarit_is_admin', 'true');
+    } else {
+      sessionStorage.removeItem('nayarit_is_admin');
+    }
+  }, [isAdmin]);
 
   // Sync with window.location.hash for routing and #admin trigger
   useEffect(() => {
@@ -164,14 +177,24 @@ export const BlogProvider = ({ children }) => {
       if (hash === '#blog-page' || hash === '#articulos') {
         setCurrentView('blog');
       } else if (hash === '#admin') {
-        if (!isAdmin) setShowLoginModal(true);
+        if (!isAdmin) {
+          setShowLoginModal(true);
+        } else {
+          setCurrentView('blog');
+          window.location.hash = 'blog-page';
+        }
       }
     };
 
     window.addEventListener('hashchange', handleHashChange);
     // Check initial hash
-    if (window.location.hash === '#admin' && !isAdmin) {
-      setShowLoginModal(true);
+    if (window.location.hash === '#admin') {
+      if (!isAdmin) {
+        setShowLoginModal(true);
+      } else {
+        setCurrentView('blog');
+        window.location.hash = 'blog-page';
+      }
     }
 
     return () => window.removeEventListener('hashchange', handleHashChange);
