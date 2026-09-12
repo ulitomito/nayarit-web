@@ -40,31 +40,6 @@ export const LatestBlogSection = () => {
 
           {/* Quick Access to Dedicated Blog Page */}
           <div className="flex flex-wrap items-center gap-3">
-            {isAdmin && (
-              <div className="flex items-center gap-2 bg-[#153A26]/10 px-3 py-1.5 rounded-2xl border border-[#153A26]/20">
-                <span className="w-2 h-2 rounded-full bg-emerald-600 animate-pulse"></span>
-                <span className="text-xs font-bold text-[#153A26]">Admin Activo</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditingPost(null);
-                    setShowPostModal(true);
-                  }}
-                  className="ml-2 px-2.5 py-1 rounded-xl bg-[#153A26] text-white text-xs font-bold hover:bg-[#0B1E14] cursor-pointer inline-flex items-center gap-1"
-                >
-                  <PlusCircle className="w-3 h-3" />
-                  Nuevo
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsAdmin(false)}
-                  className="text-xs text-red-600 hover:underline cursor-pointer ml-1"
-                >
-                  Salir
-                </button>
-              </div>
-            )}
-
             <button
               type="button"
               onClick={navigateToBlog}

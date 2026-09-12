@@ -122,6 +122,67 @@ export const RichArticleContent = ({ content }) => {
   );
 };
 
+export const initialDestinations = [
+  {
+    id: 'tepic',
+    name: { es: 'Tepic', en: 'Tepic' },
+    desc: { es: 'Capital del Estado, modernización y alta plusvalía urbana.', en: 'State Capital, modernization, and urban appreciation.' },
+    tag: { es: 'Capital & Centro Financiero', en: 'State Capital & Urban Hub' },
+    image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80',
+  },
+  {
+    id: 'mita',
+    name: { es: 'Punta de Mita', en: 'Punta de Mita' },
+    desc: { es: 'Península exclusiva, resorts de ultra lujo y campos de golf.', en: 'Exclusive peninsula, ultra-luxury resorts, and championship golf.' },
+    tag: { es: 'Exclusividad & Lujo', en: 'World-Class Exclusivity' },
+    image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80',
+  },
+  {
+    id: 'sayulita',
+    name: { es: 'Sayulita', en: 'Sayulita' },
+    desc: { es: 'Pueblo Mágico cosmopolita, surf de clase mundial y alta rentabilidad vacacional.', en: 'Cosmopolitan Magical Town, surf culture, and top rental yields.' },
+    tag: { es: 'Pueblo Mágico & Surf', en: 'Magical Town & Surf' },
+    image: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80',
+  },
+  {
+    id: 'sanpancho',
+    name: { es: 'San Pancho', en: 'San Pancho' },
+    desc: { es: 'La capital cultural de la Riviera, polo ecuestre y arquitectura sustentable.', en: 'Cultural capital of the Riviera, polo club, and eco-architecture.' },
+    tag: { es: 'Santuario Ecológico', en: 'Eco-Sanctuary' },
+    image: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1200&q=80',
+  },
+  {
+    id: 'litibu',
+    name: { es: 'Litibú & Higuera Blanca', en: 'Litibú & Higuera Blanca' },
+    desc: { es: 'Playas vírgenes, privacidad absoluta y desarrollo de baja densidad.', en: 'Pristine beaches, tranquil privacy, and sustainable low-density growth.' },
+    tag: { es: 'Playa Virgen & Privacidad', en: 'Untouched & Secluded' },
+    image: 'https://images.unsplash.com/photo-1510414842594-a61c69b5ae57?auto=format&fit=crop&w=1200&q=80',
+  },
+  {
+    id: 'compostela',
+    name: { es: 'Compostela & Costa Canuva', en: 'Compostela & Costa Canuva' },
+    desc: { es: 'Historia colonial, tradición cafetalera y la nueva joya de la costa.', en: 'Colonial heritage, coffee traditions, and emerging master-planned coast.' },
+    tag: { es: 'Pueblo Mágico & Costa Canuva', en: 'Colonial Town & Canuva' },
+    image: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=80',
+  },
+  {
+    id: 'nuevo',
+    name: { es: 'Nuevo Nayarit', en: 'Nuevo Nayarit' },
+    desc: { es: 'Canales náuticos, marinas, condominios frente al mar e infraestructura de primer nivel.', en: 'Navigable canals, yacht marinas, and premier beachfront luxury.' },
+    tag: { es: 'Infraestructura & Marinas', en: 'Marinas & Modern Living' },
+    image: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=1200&q=80',
+  }
+];
+
+export const initialContactInfo = {
+  whatsappPhone: '523111187229',
+  phoneDisplay: '+52 (311) 118-7229',
+  email: 'contacto@nayaritrealestate.com',
+  instagramUrl: 'https://instagram.com/nayaritrealestate',
+  facebookUrl: 'https://facebook.com/nayaritrealestate',
+  address: 'Bahía de Banderas & Tepic, Nayarit, México'
+};
+
 export const BlogProvider = ({ children }) => {
   // Saved articles in localStorage
   const [posts, setPosts] = useState(() => {
@@ -136,11 +197,38 @@ export const BlogProvider = ({ children }) => {
     return initialBlogPosts;
   });
 
-  // Current view: 'landing' or 'blog'
+  // Destinations data in state with persistence
+  const [destinations, setDestinations] = useState(() => {
+    const saved = localStorage.getItem('nayarit_destinations');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        return initialDestinations;
+      }
+    }
+    return initialDestinations;
+  });
+
+  // Contact info data in state with persistence
+  const [contactInfo, setContactInfo] = useState(() => {
+    const saved = localStorage.getItem('nayarit_contact_info');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        return initialContactInfo;
+      }
+    }
+    return initialContactInfo;
+  });
+
+  // Current view: 'landing', 'blog', or 'admin'
   const [currentView, setCurrentView] = useState(() => {
     if (typeof window !== 'undefined') {
       const hash = window.location.hash;
       if (hash === '#blog-page' || hash === '#articulos') return 'blog';
+      if (hash === '#admin') return 'admin';
     }
     return 'landing';
   });
@@ -170,6 +258,24 @@ export const BlogProvider = ({ children }) => {
     }
   }, [isAdmin]);
 
+  // Persist destinations
+  useEffect(() => {
+    try {
+      localStorage.setItem('nayarit_destinations', JSON.stringify(destinations));
+    } catch (e) {
+      console.error('Error saving destinations', e);
+    }
+  }, [destinations]);
+
+  // Persist contact info
+  useEffect(() => {
+    try {
+      localStorage.setItem('nayarit_contact_info', JSON.stringify(contactInfo));
+    } catch (e) {
+      console.error('Error saving contact info', e);
+    }
+  }, [contactInfo]);
+
   // Sync with window.location.hash for routing and #admin trigger
   useEffect(() => {
     const handleHashChange = () => {
@@ -180,8 +286,7 @@ export const BlogProvider = ({ children }) => {
         if (!isAdmin) {
           setShowLoginModal(true);
         } else {
-          setCurrentView('blog');
-          window.location.hash = 'blog-page';
+          setCurrentView('admin');
         }
       }
     };
@@ -192,8 +297,7 @@ export const BlogProvider = ({ children }) => {
       if (!isAdmin) {
         setShowLoginModal(true);
       } else {
-        setCurrentView('blog');
-        window.location.hash = 'blog-page';
+        setCurrentView('admin');
       }
     }
 
@@ -217,6 +321,13 @@ export const BlogProvider = ({ children }) => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const navigateToAdmin = () => {
+    setSelectedArticle(null);
+    setCurrentView('admin');
+    window.location.hash = 'admin';
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const navigateToLanding = (targetSection = 'hero') => {
     setSelectedArticle(null);
     setCurrentView('landing');
@@ -232,7 +343,6 @@ export const BlogProvider = ({ children }) => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
-
   const openArticle = (post) => {
     setSelectedArticle(post);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -240,6 +350,16 @@ export const BlogProvider = ({ children }) => {
 
   const closeArticle = () => {
     setSelectedArticle(null);
+  };
+
+  const updateDestination = (id, updatedFields) => {
+    setDestinations((prev) =>
+      prev.map((d) => (d.id === id ? { ...d, ...updatedFields } : d))
+    );
+  };
+
+  const updateContactInfo = (newInfo) => {
+    setContactInfo((prev) => ({ ...prev, ...newInfo }));
   };
 
   const deletePost = (postId) => {
@@ -314,10 +434,17 @@ export const BlogProvider = ({ children }) => {
       value={{
         posts,
         setPosts,
+        destinations,
+        setDestinations,
+        updateDestination,
+        contactInfo,
+        setContactInfo,
+        updateContactInfo,
         currentView,
         setCurrentView,
         navigateToBlog,
         navigateToLanding,
+        navigateToAdmin,
         selectedArticle,
         setSelectedArticle,
         openArticle,

@@ -68,36 +68,6 @@ export const BlogPage = () => {
             {t.blog.blogHeroSubtitle}
           </p>
 
-          {/* Admin Toolbar (If Logged In) */}
-          {isAdmin && (
-            <div className="max-w-md mx-auto mb-8 p-3 rounded-2xl bg-[#153A26] text-white flex items-center justify-between shadow-lg">
-              <span className="text-xs font-bold flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                Panel Administrador Activo
-              </span>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditingPost(null);
-                    setShowPostModal(true);
-                  }}
-                  className="px-3 py-1.5 rounded-xl bg-[#C59A47] text-[#0B1E14] text-xs font-bold hover:bg-[#B3873B] transition-colors inline-flex items-center gap-1 cursor-pointer"
-                >
-                  <PlusCircle className="w-3.5 h-3.5" />
-                  Nuevo Post
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setIsAdmin(false)}
-                  className="text-xs text-white/70 hover:text-white underline cursor-pointer"
-                >
-                  Salir
-                </button>
-              </div>
-            </div>
-          )}
-
           {/* Live Search & Filter Bar */}
           <div className="max-w-2xl mx-auto">
             <div className="relative mb-6">

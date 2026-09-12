@@ -1,68 +1,25 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useLanguage } from '../context/LanguageContext';
+import { useBlog } from '../context/BlogContext';
 import { MapPin, ChevronLeft, ChevronRight } from 'lucide-react';
 
-const WHATSAPP_PHONE = '523111187229';
 const AUTO_PLAY_INTERVAL = 10000; // 10 seconds
 
 export const DestinationsGallery = () => {
   const { lang, t } = useLanguage();
+  const { destinations: contextDestinations, contactInfo } = useBlog();
   const scrollRef = useRef(null);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const isProgrammaticScroll = useRef(false);
 
-  const destinations = [
-    {
-      id: 'tepic',
-      name: t.destinations.p1Name,
-      desc: t.destinations.p1Desc,
-      tag: lang === 'es' ? 'Capital & Centro Financiero' : 'State Capital & Urban Hub',
-      image: 'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80',
-    },
-    {
-      id: 'mita',
-      name: t.destinations.p2Name,
-      desc: t.destinations.p2Desc,
-      tag: lang === 'es' ? 'Exclusividad & Lujo' : 'World-Class Exclusivity',
-      image: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80',
-    },
-    {
-      id: 'sayulita',
-      name: t.destinations.p3Name,
-      desc: t.destinations.p3Desc,
-      tag: lang === 'es' ? 'Pueblo Mágico & Surf' : 'Magical Town & Surf',
-      image: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80',
-    },
-    {
-      id: 'sanpancho',
-      name: t.destinations.p4Name,
-      desc: t.destinations.p4Desc,
-      tag: lang === 'es' ? 'Santuario Ecológico' : 'Eco-Sanctuary',
-      image: 'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1200&q=80',
-    },
-    {
-      id: 'litibu',
-      name: t.destinations.p5Name,
-      desc: t.destinations.p5Desc,
-      tag: lang === 'es' ? 'Playa Virgen & Privacidad' : 'Untouched & Secluded',
-      image: 'https://images.unsplash.com/photo-1510414842594-a61c69b5ae57?auto=format&fit=crop&w=1200&q=80',
-    },
-    {
-      id: 'compostela',
-      name: t.destinations.p6Name,
-      desc: t.destinations.p6Desc,
-      tag: lang === 'es' ? 'Pueblo Mágico & Costa Canuva' : 'Colonial Town & Canuva',
-      image: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=80',
-    },
-    {
-      id: 'nuevo',
-      name: t.destinations.p7Name,
-      desc: t.destinations.p7Desc,
-      tag: lang === 'es' ? 'Marinas & Canales' : 'Yacht Marinas',
-      image: 'https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=1200&q=80',
-    }
-  ];
+  const destinations = (contextDestinations || []).map((d) => ({
+    id: d.id,
+    name: typeof d.name === 'object' ? (d.name[lang] || d.name.es) : d.name,
+    desc: typeof d.desc === 'object' ? (d.desc[lang] || d.desc.es) : d.desc,
+    tag: typeof d.tag === 'object' ? (d.tag[lang] || d.tag.es) : d.tag,
+    image: d.image,
+  }));
 
   // Scroll to a specific card smoothly
   const scrollToSlide = useCallback((index) => {
@@ -242,10 +199,10 @@ export const DestinationsGallery = () => {
                 Nayarit, México
               </span>
               <a
-                href={`https://api.whatsapp.com/send?phone=${WHATSAPP_PHONE}&text=${encodeURIComponent(
+                href={`https://api.whatsapp.com/send?phone=${contactInfo?.whatsappPhone || '523111187229'}&text=${encodeURIComponent(
                   lang === 'es'
-                    ? `¡Hola Nayarit Real Estate! Me interesa recibir información y opciones de inversión en ${dest.name}.`
-                    : `Hello Nayarit Real Estate! I would like to receive information and investment options in ${dest.name}.`
+                    ? `¡Hola Nayarit Real Estate! Me interesa conocer opciones de inversión en ${dest.name}.`
+                    : `Hello Nayarit Real Estate! I am interested in property investment opportunities in ${dest.name}.`
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"

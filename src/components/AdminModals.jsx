@@ -15,7 +15,7 @@ export const AdminModals = () => {
     editingPost,
     setEditingPost,
     savePost,
-    navigateToBlog,
+    navigateToAdmin,
   } = useBlog();
 
   const [passwordInput, setPasswordInput] = useState('');
@@ -67,8 +67,8 @@ export const AdminModals = () => {
       setShowLoginModal(false);
       setPasswordInput('');
       setLoginError('');
-      // Navigate directly to the blog management screen
-      navigateToBlog();
+      // Navigate directly to the dedicated Admin Dashboard
+      navigateToAdmin();
     } else {
       setLoginError('Contraseña incorrecta. Inténtalo de nuevo.');
     }
@@ -89,7 +89,7 @@ export const AdminModals = () => {
               Acceso Administrador
             </h3>
             <p className="text-xs text-[#5C6B62] mb-5 text-center">
-              Ingresa la contraseña para gestionar artículos:
+              Ingresa la contraseña para entrar al Panel de Control:
             </p>
             <form onSubmit={handleAdminLogin} className="space-y-4">
               <input
@@ -110,7 +110,7 @@ export const AdminModals = () => {
                     setShowLoginModal(false);
                     window.location.hash = '';
                   }}
-                  className="flex-1 py-2.5 rounded-xl border border-[#DFD5C4] text-xs font-bold text-[#5C6B62] hover:bg-[#FAF7F2]"
+                  className="flex-1 py-2.5 rounded-xl border border-[#DFD5C4] text-xs font-bold text-[#5C6B62] hover:bg-[#FAF7F2] cursor-pointer"
                 >
                   Cancelar
                 </button>
@@ -147,13 +147,14 @@ export const AdminModals = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#0B1E14] mb-1">Título (English)</label>
+                <label className="block text-xs font-bold text-[#0B1E14] mb-1">Title (English)</label>
                 <input
                   type="text"
                   value={formData.titleEn}
                   onChange={(e) => setFormData({ ...formData, titleEn: e.target.value })}
-                  placeholder="Ej. Guide to investing safely..."
+                  placeholder="E.g. Due Diligence Guide..."
                   className="w-full px-3 py-2 rounded-xl bg-[#FAF7F2] border border-[#DFD5C4] text-xs focus:ring-1 focus:ring-[#C59A47]"
+                  required
                 />
               </div>
 
@@ -165,27 +166,26 @@ export const AdminModals = () => {
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                     className="w-full px-3 py-2 rounded-xl bg-[#FAF7F2] border border-[#DFD5C4] text-xs"
                   >
-                    <option value="legal">Certeza Notarial (Legal)</option>
+                    <option value="legal">Certeza Notarial</option>
                     <option value="foreigners">Fideicomisos & Extranjeros</option>
                     <option value="investment">Plusvalía & Inversión</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-[#0B1E14] mb-1">Minutos de Lectura</label>
+                  <label className="block text-xs font-bold text-[#0B1E14] mb-1">Tiempo de Lectura (min)</label>
                   <input
                     type="number"
                     min="1"
-                    max="30"
+                    max="60"
                     value={formData.readTime}
-                    onChange={(e) => setFormData({ ...formData, readTime: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, readTime: parseInt(e.target.value) || 4 })}
                     className="w-full px-3 py-2 rounded-xl bg-[#FAF7F2] border border-[#DFD5C4] text-xs"
-                  >
-                  </input>
+                  />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#0B1E14] mb-1">URL de Imagen</label>
+                <label className="block text-xs font-bold text-[#0B1E14] mb-1">URL de Imagen de Portada</label>
                 <input
                   type="url"
                   value={formData.image}
@@ -194,10 +194,15 @@ export const AdminModals = () => {
                   className="w-full px-3 py-2 rounded-xl bg-[#FAF7F2] border border-[#DFD5C4] text-xs"
                   required
                 />
+                {formData.image && (
+                  <div className="mt-2 h-24 rounded-xl overflow-hidden border border-[#DFD5C4]/70">
+                    <img src={formData.image} alt="Preview" className="w-full h-full object-cover" />
+                  </div>
+                )}
               </div>
 
               <div>
-                <label className="block text-xs font-bold text-[#0B1E14] mb-1">Resumen (Español)</label>
+                <label className="block text-xs font-bold text-[#0B1E14] mb-1">Extracto / Resumen (Español)</label>
                 <textarea
                   rows={2}
                   value={formData.excerptEs}
@@ -223,7 +228,7 @@ export const AdminModals = () => {
                 <button
                   type="button"
                   onClick={() => setShowPostModal(false)}
-                  className="px-4 py-2 rounded-xl border border-[#DFD5C4] text-xs font-bold text-[#5C6B62]"
+                  className="px-4 py-2 rounded-xl border border-[#DFD5C4] text-xs font-bold text-[#5C6B62] cursor-pointer"
                 >
                   Cancelar
                 </button>
@@ -237,51 +242,6 @@ export const AdminModals = () => {
             </form>
           </div>
         </div>
-      )}
-
-      {/* Floating Persistent Admin Control Bar (Visible across the site when logged in) */}
-      {isAdmin && (
-        <aside
-          aria-label="Barra de administración"
-          className="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 bg-[#153A26] text-white px-4 sm:px-5 py-2.5 sm:py-3 rounded-2xl shadow-2xl border border-[#C59A47] flex items-center gap-3 sm:gap-4 animate-fade-in text-xs max-w-[95vw]"
-        >
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
-            <span className="font-bold hidden md:inline">Admin Activo</span>
-          </div>
-
-          <button
-            type="button"
-            onClick={() => {
-              setEditingPost(null);
-              setShowPostModal(true);
-            }}
-            className="px-3 py-1.5 rounded-xl bg-[#C59A47] hover:bg-[#B3873B] text-[#0B1E14] font-bold transition-all inline-flex items-center gap-1.5 cursor-pointer shadow-sm hover:scale-105"
-          >
-            <PlusCircle className="w-3.5 h-3.5" />
-            <span>Nuevo Post</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={navigateToBlog}
-            className="px-3 py-1.5 rounded-xl bg-white/15 hover:bg-white/25 text-white font-semibold transition-colors inline-flex items-center gap-1.5 cursor-pointer"
-          >
-            <BookOpen className="w-3.5 h-3.5 text-[#C59A47]" />
-            <span className="hidden sm:inline">Gestionar Blog</span>
-            <span className="sm:hidden">Blog</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setIsAdmin(false)}
-            className="text-white/70 hover:text-white transition-colors cursor-pointer inline-flex items-center gap-1 pl-1 text-xs underline"
-            title="Cerrar sesión de administrador"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-            <span>Salir</span>
-          </button>
-        </aside>
       )}
     </>
   );

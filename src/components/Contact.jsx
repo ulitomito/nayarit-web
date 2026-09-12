@@ -1,14 +1,19 @@
 import React from 'react';
 import { useLanguage } from '../context/LanguageContext';
+import { useBlog } from '../context/BlogContext';
 import { Phone, MessageSquare, ShieldCheck, HeartHandshake } from 'lucide-react';
 import { InstagramIcon, FacebookIcon } from './SocialIcons';
 
-const PHONE_NUMBER = '+523111187229';
-const PHONE_DISPLAY = '+52 (311) 118-7229';
-
 export const Contact = () => {
   const { lang, t } = useLanguage();
-  const whatsappUrl = `https://api.whatsapp.com/send?phone=523111187229&text=${encodeURIComponent(
+  const { contactInfo } = useBlog();
+
+  const phoneDisplay = contactInfo?.phoneDisplay || '+52 (311) 118-7229';
+  const whatsappPhone = contactInfo?.whatsappPhone || '523111187229';
+  const instagramUrl = contactInfo?.instagramUrl || 'https://instagram.com/nayaritrealestate';
+  const facebookUrl = contactInfo?.facebookUrl || 'https://www.facebook.com/share/19YAKkiXxy/';
+
+  const whatsappUrl = `https://api.whatsapp.com/send?phone=${whatsappPhone}&text=${encodeURIComponent(
     lang === 'es'
       ? '¡Hola Nayarit Real Estate! Me gustaría ponerme en contacto con un asesor para recibir orientación inmobiliaria.'
       : 'Hello Nayarit Real Estate! I would like to get in touch with an advisor for real estate guidance.'
@@ -48,7 +53,7 @@ export const Contact = () => {
                 {t.contact.whatsappBigBtn}
               </h3>
               <p className="text-xs text-white/90 mt-1 font-medium">
-                {PHONE_DISPLAY}
+                {phoneDisplay}
               </p>
             </div>
             <div className="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center shrink-0 ml-4 group-hover:scale-110 transition-transform">
@@ -58,7 +63,7 @@ export const Contact = () => {
 
           {/* Giant Direct Phone Call Card */}
           <a
-            href={`tel:${PHONE_NUMBER}`}
+            href={`tel:${whatsappPhone}`}
             className="p-8 rounded-3xl bg-[#153A26] hover:bg-[#0B1E14] text-white shadow-xl border border-[#C59A47]/40 flex items-center justify-between group transition-all transform hover:scale-[1.02]"
           >
             <div>
@@ -66,7 +71,7 @@ export const Contact = () => {
                 {lang === 'es' ? 'Llamada Directa' : 'Direct Call'}
               </span>
               <h3 className="font-serif text-2xl sm:text-3xl font-bold leading-tight">
-                {PHONE_DISPLAY}
+                {phoneDisplay}
               </h3>
               <p className="text-xs text-white/80 mt-1">
                 {lang === 'es' ? 'Atención telefónica de lunes a sábado' : 'Phone consultation Mon through Sat'}
@@ -78,14 +83,14 @@ export const Contact = () => {
           </a>
         </div>
 
-        {/* Social Media Links: Instagram (@nayaritrealestate) and Facebook (Nayarit Real Estate) */}
+        {/* Social Media Links: Instagram and Facebook */}
         <div className="text-center mb-16">
           <p className="text-xs font-bold uppercase tracking-widest text-[#5C6B62] mb-4">
             {t.contact.socialTitle}
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <a
-              href="https://instagram.com/nayaritrealestate"
+              href={instagramUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-3 px-8 py-4 rounded-2xl bg-white hover:bg-[#FAF7F2] text-[#0B1E14] font-bold text-sm border border-[#DFD5C4] shadow-sm hover:shadow-md transition-all group"
@@ -98,7 +103,7 @@ export const Contact = () => {
             </a>
 
             <a
-              href="https://www.facebook.com/share/19YAKkiXxy/"
+              href={facebookUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-3 px-8 py-4 rounded-2xl bg-white hover:bg-[#FAF7F2] text-[#0B1E14] font-bold text-sm border border-[#DFD5C4] shadow-sm hover:shadow-md transition-all group"
