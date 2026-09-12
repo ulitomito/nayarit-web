@@ -8,42 +8,42 @@ export const BentoServices = () => {
   const services = [
     {
       icon: ShieldCheck,
-      badge: 'Blindaje Notarial',
+      badge: t.bento.c1Badge,
       title: t.bento.c1Title,
       desc: t.bento.c1Desc,
       highlight: true
     },
     {
       icon: Landmark,
-      badge: 'Art. 27 Constitucional',
+      badge: t.bento.c2Badge,
       title: t.bento.c2Title,
       desc: t.bento.c2Desc,
       highlight: false
     },
     {
       icon: ScrollText,
-      badge: 'Operación Segura',
+      badge: t.bento.c3Badge,
       title: t.bento.c3Title,
       desc: t.bento.c3Desc,
       highlight: false
     },
     {
       icon: BarChart3,
-      badge: 'Valuación Certificada',
+      badge: t.bento.c4Badge,
       title: t.bento.c4Title,
       desc: t.bento.c4Desc,
       highlight: false
     },
     {
       icon: CreditCard,
-      badge: 'Créditos Bancarios',
+      badge: t.bento.c5Badge,
       title: t.bento.c5Title,
       desc: t.bento.c5Desc,
       highlight: false
     },
     {
       icon: Key,
-      badge: 'Pólizas Jurídicas',
+      badge: t.bento.c6Badge,
       title: t.bento.c6Title,
       desc: t.bento.c6Desc,
       highlight: false

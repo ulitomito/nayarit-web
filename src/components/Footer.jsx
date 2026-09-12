@@ -3,12 +3,16 @@ import { useLanguage } from '../context/LanguageContext';
 import { ArrowUp, Phone } from 'lucide-react';
 import { InstagramIcon, FacebookIcon } from './SocialIcons';
 
-const WHATSAPP_LINK = 'https://wa.me/message/GWFSILZHUOI3K1';
 const PHONE_NUMBER = '+523111187229';
 const PHONE_DISPLAY = '+52 (311) 118-7229';
 
 export const Footer = () => {
   const { lang, t } = useLanguage();
+  const footerWhatsappUrl = `https://api.whatsapp.com/send?phone=523111187229&text=${encodeURIComponent(
+    lang === 'es'
+      ? '¡Hola Nayarit Real Estate! Me comunico desde su sitio web para solicitar más información.'
+      : 'Hello Nayarit Real Estate! I am reaching out from your website to request more information.'
+  )}`;
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -32,7 +36,7 @@ export const Footer = () => {
                 NAYARIT REAL ESTATE
               </span>
               <span className="text-xs text-[#E3B86C] tracking-[0.2em] uppercase block font-semibold">
-                Certeza y Tradición Inmobiliaria
+                {t.nav.slogan}
               </span>
             </div>
           </div>
@@ -62,17 +66,17 @@ export const Footer = () => {
             <a
               href={`tel:${PHONE_NUMBER}`}
               className="px-4 py-2.5 rounded-full bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-all flex items-center gap-1.5"
-              title="Llamar"
+              title={lang === 'es' ? 'Llamar' : 'Call'}
             >
               <Phone className="w-3.5 h-3.5 text-[#E3B86C]" />
               <span>{PHONE_DISPLAY}</span>
             </a>
 
             <a
-              href={WHATSAPP_LINK}
+              href={footerWhatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#25D366] hover:bg-[#1EBE5D] text-white text-xs font-bold shadow-md transition-all"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-[#25D366] hover:bg-[#1EBE5D] text-white text-xs font-bold shadow-md transition-all cursor-pointer"
             >
               <i className="fa-brands fa-whatsapp text-base"></i>
               <span>WhatsApp</span>
@@ -84,6 +88,13 @@ export const Footer = () => {
         <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-white/60 text-center sm:text-left">
           <p>
             © {new Date().getFullYear()} {t.footer.rights}
+            <a
+              href="#admin"
+              className="text-[11px] text-white/20 hover:text-[#E3B86C] transition-colors ml-3 inline-block"
+              title="Acceso Administrativo"
+            >
+              • Admin
+            </a>
           </p>
           <p className="text-[11px] text-white/50 max-w-md">
             {t.footer.disclaimer}

@@ -134,7 +134,7 @@ export const AppreciationSimulator = () => {
                 ${metrics.projectedAssetValue.toLocaleString()} USD
               </p>
               <span className="text-[10px] text-[#25D366] font-bold mt-1 inline-block">
-                +{Math.round(((metrics.projectedAssetValue - investment) / investment) * 100)}% valor estimado
+                +{Math.round(((metrics.projectedAssetValue - investment) / investment) * 100)}% {t.simulator.estimatedValuePill}
               </span>
             </div>
 
@@ -146,7 +146,7 @@ export const AppreciationSimulator = () => {
                 +${metrics.capitalAppreciation.toLocaleString()} USD
               </p>
               <span className="text-[10px] text-[#5C6B62] mt-1 inline-block">
-                Ganancia de capital
+                {t.simulator.capitalGainLabel}
               </span>
             </div>
 
@@ -158,38 +158,38 @@ export const AppreciationSimulator = () => {
                 +${metrics.rentalRevenue.toLocaleString()} USD
               </p>
               <span className="text-[10px] text-[#5C6B62] mt-1 inline-block">
-                Flujo estimado acumulado
+                {t.simulator.cumulativeRentalLabel}
               </span>
             </div>
           </div>
 
           {/* Visual Bar Comparison */}
           <div className="mb-6 p-5 bg-white rounded-2xl border border-[#DFD5C4]">
-            <div className="flex items-center justify-between text-xs font-bold text-[#0B1E14] mb-2">
-              <span>Crecimiento Simulado ({years} Años)</span>
-              <span className="text-[#153A26]">Total Retorno Estimado: ${(metrics.totalReturn + investment).toLocaleString()} USD</span>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs font-bold text-[#0B1E14] mb-2 gap-1">
+              <span>{t.simulator.growthSimulated} ({years} {t.simulator.yearsWord})</span>
+              <span className="text-[#153A26]">{t.simulator.totalEstimatedReturn}: ${(metrics.totalReturn + investment).toLocaleString()} USD</span>
             </div>
             <div className="h-6 w-full rounded-full bg-[#EFE7DA] overflow-hidden flex shadow-inner">
               <div
                 style={{ width: `${Math.round((investment / (metrics.totalReturn + investment)) * 100)}%` }}
                 className="bg-[#0B1E14] h-full flex items-center justify-center text-[10px] text-white font-bold"
-                title="Capital Inicial"
+                title={t.simulator.tipInitial}
               >
-                Base
+                {t.simulator.barBase}
               </div>
               <div
                 style={{ width: `${Math.round((metrics.capitalAppreciation / (metrics.totalReturn + investment)) * 100)}%` }}
                 className="bg-[#C59A47] h-full flex items-center justify-center text-[10px] text-[#0B1E14] font-bold"
-                title="Plusvalía Inmueble"
+                title={t.simulator.tipAppreciation}
               >
-                Plusvalía
+                {t.simulator.barAppreciation}
               </div>
               <div
                 style={{ width: `${Math.round((metrics.rentalRevenue / (metrics.totalReturn + investment)) * 100)}%` }}
                 className="bg-[#25D366] h-full flex items-center justify-center text-[10px] text-white font-bold"
-                title="Rentas Generadas"
+                title={t.simulator.tipRentals}
               >
-                Rentas
+                {t.simulator.barRentals}
               </div>
             </div>
           </div>

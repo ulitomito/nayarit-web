@@ -1,12 +1,16 @@
-import React, { useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useLanguage } from '../context/LanguageContext';
-import { MapPin, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import { MapPin, ChevronLeft, ChevronRight } from 'lucide-react';
 
-const WHATSAPP_LINK = 'https://wa.me/message/GWFSILZHUOI3K1';
+const WHATSAPP_PHONE = '523111187229';
+const AUTO_PLAY_INTERVAL = 10000; // 10 seconds
 
 export const DestinationsGallery = () => {
   const { lang, t } = useLanguage();
   const scrollRef = useRef(null);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const isProgrammaticScroll = useRef(false);
 
   const destinations = [
     {
@@ -60,10 +64,83 @@ export const DestinationsGallery = () => {
     }
   ];
 
-  const scroll = (direction) => {
-    if (scrollRef.current) {
-      const scrollAmount = direction === 'left' ? -380 : 380;
-      scrollRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+  // Scroll to a specific card smoothly
+  const scrollToSlide = useCallback((index) => {
+    if (!scrollRef.current) return;
+    const container = scrollRef.current;
+    const targetCard = container.children[index];
+    if (targetCard) {
+      isProgrammaticScroll.current = true;
+      if (index === 0) {
+        container.scrollTo({ left: 0, behavior: 'smooth' });
+      } else {
+        const paddingLeft = parseInt(window.getComputedStyle(container).paddingLeft, 10) || 0;
+        container.scrollTo({
+          left: targetCard.offsetLeft - paddingLeft,
+          behavior: 'smooth',
+        });
+      }
+      setTimeout(() => {
+        isProgrammaticScroll.current = false;
+      }, 650);
+    }
+  }, []);
+
+  // Move to next slide (loops back to index 0 after the last slide)
+  const handleNext = useCallback(() => {
+    setCurrentIndex((prev) => {
+      const next = (prev + 1) % destinations.length;
+      scrollToSlide(next);
+      return next;
+    });
+  }, [destinations.length, scrollToSlide]);
+
+  // Move to previous slide
+  const handlePrev = useCallback(() => {
+    setCurrentIndex((prev) => {
+      const next = (prev - 1 + destinations.length) % destinations.length;
+      scrollToSlide(next);
+      return next;
+    });
+  }, [destinations.length, scrollToSlide]);
+
+  // Select slide directly from dots
+  const handleSelectSlide = (index) => {
+    setCurrentIndex(index);
+    scrollToSlide(index);
+  };
+
+  // 10-Second Auto-play Timer (loops back to 0 when finished, pauses on hover)
+  useEffect(() => {
+    if (isPaused) return;
+
+    const timer = setInterval(() => {
+      handleNext();
+    }, AUTO_PLAY_INTERVAL);
+
+    return () => clearInterval(timer);
+  }, [isPaused, handleNext]);
+
+  // Sync currentIndex if user scrolls or swipes manually
+  const handleManualScroll = () => {
+    if (isProgrammaticScroll.current || !scrollRef.current) return;
+    const container = scrollRef.current;
+    const scrollLeft = container.scrollLeft;
+    const paddingLeft = parseInt(window.getComputedStyle(container).paddingLeft, 10) || 0;
+
+    let closestIdx = 0;
+    let minDistance = Infinity;
+
+    Array.from(container.children).forEach((child, idx) => {
+      const distance = Math.abs(child.offsetLeft - paddingLeft - scrollLeft);
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestIdx = idx;
+      }
+    });
+
+    if (closestIdx !== currentIndex) {
+      setCurrentIndex(closestIdx);
     }
   };
 
@@ -83,37 +160,58 @@ export const DestinationsGallery = () => {
           </p>
         </div>
 
-        {/* Scroll Arrows */}
-        <div className="flex items-center gap-2 self-start md:self-auto">
-          <button
-            type="button"
-            onClick={() => scroll('left')}
-            className="w-11 h-11 rounded-full bg-white border border-[#DFD5C4] shadow-sm hover:bg-[#EFE7DA] text-[#0B1E14] flex items-center justify-center transition-all"
-            aria-label="Scroll anterior"
-          >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          <button
-            type="button"
-            onClick={() => scroll('right')}
-            className="w-11 h-11 rounded-full bg-white border border-[#DFD5C4] shadow-sm hover:bg-[#EFE7DA] text-[#0B1E14] flex items-center justify-center transition-all"
-            aria-label="Scroll siguiente"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
+        {/* Slide Counter + Arrows */}
+        <div className="flex items-center gap-4 self-start md:self-auto">
+          {/* Active slide counter */}
+          <div className="flex items-center gap-1.5 text-xs font-bold bg-white px-3.5 py-2 rounded-full border border-[#DFD5C4] shadow-sm">
+            <span className="text-[#C59A47] font-serif text-sm">
+              {String(currentIndex + 1).padStart(2, '0')}
+            </span>
+            <span className="text-[#5C6B62]/50">/</span>
+            <span className="text-[#5C6B62]">
+              {String(destinations.length).padStart(2, '0')}
+            </span>
+          </div>
+
+          {/* Controls */}
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handlePrev}
+              className="w-11 h-11 rounded-full bg-white border border-[#DFD5C4] shadow-sm hover:bg-[#EFE7DA] text-[#0B1E14] flex items-center justify-center transition-all cursor-pointer"
+              aria-label="Destino anterior"
+            >
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <button
+              type="button"
+              onClick={handleNext}
+              className="w-11 h-11 rounded-full bg-white border border-[#DFD5C4] shadow-sm hover:bg-[#EFE7DA] text-[#0B1E14] flex items-center justify-center transition-all cursor-pointer"
+              aria-label="Destino siguiente"
+            >
+              <ChevronRight className="w-5 h-5" />
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Horizontal Carousel */}
+      {/* Auto-advancing Carousel Container (Pauses on hover so user can read) */}
       <div
         ref={scrollRef}
-        className="flex gap-6 overflow-x-auto px-4 sm:px-8 max-w-7xl mx-auto pb-6 scrollbar-none snap-x snap-mandatory"
+        onScroll={handleManualScroll}
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
+        className="flex gap-6 overflow-x-auto px-4 sm:px-8 max-w-7xl mx-auto pb-4 scrollbar-none snap-x snap-mandatory scroll-smooth"
         style={{ scrollbarWidth: 'none' }}
       >
-        {destinations.map((dest) => (
+        {destinations.map((dest, idx) => (
           <div
             key={dest.id}
-            className="w-[300px] sm:w-[360px] md:w-[400px] shrink-0 snap-start bg-white rounded-3xl overflow-hidden shadow-luxury border border-[#DFD5C4] flex flex-col group transition-all duration-300 hover:shadow-luxury-hover"
+            className={`w-[300px] sm:w-[360px] md:w-[400px] shrink-0 snap-start bg-white rounded-3xl overflow-hidden shadow-luxury border transition-all duration-500 flex flex-col group hover:shadow-luxury-hover ${
+              currentIndex === idx
+                ? 'border-[#C59A47] ring-2 ring-[#C59A47]/25'
+                : 'border-[#DFD5C4]'
+            }`}
           >
             <div className="relative h-72 overflow-hidden">
               <img
@@ -144,10 +242,14 @@ export const DestinationsGallery = () => {
                 Nayarit, México
               </span>
               <a
-                href={WHATSAPP_LINK}
+                href={`https://api.whatsapp.com/send?phone=${WHATSAPP_PHONE}&text=${encodeURIComponent(
+                  lang === 'es'
+                    ? `¡Hola Nayarit Real Estate! Me interesa recibir información y opciones de inversión en ${dest.name}.`
+                    : `Hello Nayarit Real Estate! I would like to receive information and investment options in ${dest.name}.`
+                )}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#25D366] hover:bg-[#1EBE5D] text-white text-xs font-bold transition-all shadow-sm"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#25D366] hover:bg-[#1EBE5D] text-white text-xs font-bold transition-all shadow-sm cursor-pointer"
               >
                 <i className="fa-brands fa-whatsapp text-sm"></i>
                 <span>WhatsApp</span>
@@ -156,6 +258,25 @@ export const DestinationsGallery = () => {
           </div>
         ))}
       </div>
+
+      {/* Infinite Dots Navigation with 10s Timer Indicator */}
+      <div className="flex items-center justify-center gap-2 mt-6">
+        {destinations.map((dest, idx) => (
+          <button
+            key={dest.id}
+            type="button"
+            onClick={() => handleSelectSlide(idx)}
+            className={`h-2.5 rounded-full transition-all duration-300 cursor-pointer ${
+              currentIndex === idx
+                ? 'w-8 bg-[#C59A47] shadow-sm'
+                : 'w-2.5 bg-[#DFD5C4] hover:bg-[#C59A47]/60'
+            }`}
+            aria-label={`Ir a ${dest.name}`}
+            title={dest.name}
+          />
+        ))}
+      </div>
     </section>
   );
 };
+

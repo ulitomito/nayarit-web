@@ -3,12 +3,16 @@ import { useLanguage } from '../context/LanguageContext';
 import { Phone, MessageSquare, ShieldCheck, HeartHandshake } from 'lucide-react';
 import { InstagramIcon, FacebookIcon } from './SocialIcons';
 
-const WHATSAPP_LINK = 'https://wa.me/message/GWFSILZHUOI3K1';
 const PHONE_NUMBER = '+523111187229';
 const PHONE_DISPLAY = '+52 (311) 118-7229';
 
 export const Contact = () => {
   const { lang, t } = useLanguage();
+  const whatsappUrl = `https://api.whatsapp.com/send?phone=523111187229&text=${encodeURIComponent(
+    lang === 'es'
+      ? '¡Hola Nayarit Real Estate! Me gustaría ponerme en contacto con un asesor para recibir orientación inmobiliaria.'
+      : 'Hello Nayarit Real Estate! I would like to get in touch with an advisor for real estate guidance.'
+  )}`;
 
   return (
     <section id="contacto" className="py-20 bg-[#FAF7F2] relative">
@@ -31,14 +35,14 @@ export const Contact = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
           {/* Giant WhatsApp Button Card */}
           <a
-            href={WHATSAPP_LINK}
+            href={whatsappUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="p-8 rounded-3xl bg-[#25D366] hover:bg-[#1EBE5D] text-white shadow-xl hover:shadow-2xl transition-all transform hover:scale-[1.02] flex items-center justify-between group"
+            className="p-8 rounded-3xl bg-[#25D366] hover:bg-[#1EBE5D] text-white shadow-xl hover:shadow-2xl transition-all transform hover:scale-[1.02] flex items-center justify-between group cursor-pointer"
           >
             <div>
               <span className="text-xs font-bold uppercase tracking-wider bg-white/20 px-3 py-1 rounded-full inline-block mb-3">
-                Respuesta Inmediata
+                {lang === 'es' ? 'Respuesta Inmediata' : 'Instant Response'}
               </span>
               <h3 className="font-serif text-2xl sm:text-3xl font-bold leading-tight">
                 {t.contact.whatsappBigBtn}
@@ -59,7 +63,7 @@ export const Contact = () => {
           >
             <div>
               <span className="text-xs font-bold uppercase tracking-wider text-[#E3B86C] bg-white/10 px-3 py-1 rounded-full inline-block mb-3">
-                Llamada Directa
+                {lang === 'es' ? 'Llamada Directa' : 'Direct Call'}
               </span>
               <h3 className="font-serif text-2xl sm:text-3xl font-bold leading-tight">
                 {PHONE_DISPLAY}
@@ -135,9 +139,15 @@ export const Contact = () => {
             </p>
 
             <div className="pt-2 flex flex-wrap items-center justify-center md:justify-start gap-4 text-xs font-bold text-[#153A26]">
-              <span className="bg-[#FAF7F2] px-3 py-1.5 rounded-lg border border-[#DFD5C4]">🤝 Trato de Honor</span>
-              <span className="bg-[#FAF7F2] px-3 py-1.5 rounded-lg border border-[#DFD5C4]">⚖️ Blindaje Notarial</span>
-              <span className="bg-[#FAF7F2] px-3 py-1.5 rounded-lg border border-[#DFD5C4]">🌿 Orgullo Nayarita</span>
+              <span className="bg-[#FAF7F2] px-3 py-1.5 rounded-lg border border-[#DFD5C4]">
+                {lang === 'es' ? '🤝 Trato de Honor' : '🤝 Deal of Honor'}
+              </span>
+              <span className="bg-[#FAF7F2] px-3 py-1.5 rounded-lg border border-[#DFD5C4]">
+                {lang === 'es' ? '⚖️ Blindaje Notarial' : '⚖️ Notarial Shielding'}
+              </span>
+              <span className="bg-[#FAF7F2] px-3 py-1.5 rounded-lg border border-[#DFD5C4]">
+                {lang === 'es' ? '🌿 Orgullo Nayarita' : '🌿 Nayarit Pride'}
+              </span>
             </div>
           </div>
         </div>
