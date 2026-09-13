@@ -88,13 +88,6 @@ export const Footer = () => {
         <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-white/60 text-center sm:text-left">
           <p>
             © {new Date().getFullYear()} {t.footer.rights}
-            <a
-              href="#admin"
-              className="text-[11px] text-white/20 hover:text-[#E3B86C] transition-colors ml-3 inline-block"
-              title="Acceso Administrativo"
-            >
-              • Admin
-            </a>
           </p>
           <p className="text-[11px] text-white/50 max-w-md">
             {t.footer.disclaimer}
