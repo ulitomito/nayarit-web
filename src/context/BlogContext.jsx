@@ -518,12 +518,12 @@ export const BlogProvider = ({ children }) => {
       case 'investment':
         return {
           label: t ? t.blog.catInvestment : 'Plusvalía & Inversión',
-          color: 'bg-[#C59A47]/20 text-[#8B6B23] border border-[#C59A47]/50',
+          color: 'bg-[#1C1408] text-[#FFD470] border border-[#C59A47]/80 shadow-md',
         };
       default:
         return {
           label: category,
-          color: 'bg-stone-100 text-stone-700',
+          color: 'bg-[#0B1E14] text-white border border-white/20 shadow-md',
         };
     }
   };
