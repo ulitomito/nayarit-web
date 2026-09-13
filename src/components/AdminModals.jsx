@@ -108,7 +108,10 @@ export const AdminModals = () => {
                   type="button"
                   onClick={() => {
                     setShowLoginModal(false);
-                    window.location.hash = '';
+                    if (typeof window !== 'undefined') {
+                      window.history.replaceState(null, '', '/');
+                      window.location.hash = '';
+                    }
                   }}
                   className="flex-1 py-2.5 rounded-xl border border-[#DFD5C4] text-xs font-bold text-[#5C6B62] hover:bg-[#FAF7F2] cursor-pointer"
                 >

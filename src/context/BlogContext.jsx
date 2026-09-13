@@ -139,12 +139,23 @@ export const BlogProvider = ({ children }) => {
     return initialContactInfo;
   });
 
+  // Helper to detect if current URL is targeting the admin/aura workspace
+  const isAuraRoute = () => {
+    if (typeof window === 'undefined') return false;
+    const path = window.location.pathname.toLowerCase().replace(/\/$/, '');
+    const hash = window.location.hash.toLowerCase();
+    return path === '/aura' || hash === '#aura' || path === '/admin' || hash === '#admin';
+  };
+
   // Current view: 'landing', 'blog', or 'admin'
   const [currentView, setCurrentView] = useState(() => {
     if (typeof window !== 'undefined') {
+      if (isAuraRoute()) {
+        const authenticated = sessionStorage.getItem('nayarit_is_admin') === 'true';
+        return authenticated ? 'admin' : 'landing';
+      }
       const hash = window.location.hash;
       if (hash === '#blog-page' || hash === '#articulos') return 'blog';
-      if (hash === '#admin') return 'admin';
     }
     return 'landing';
   });
@@ -192,32 +203,37 @@ export const BlogProvider = ({ children }) => {
     }
   }, [contactInfo]);
 
-  // Sync with window.location.hash for routing and #admin trigger
+  // Sync with URL changes (supports /aura clean pathname, popstate, and hash)
   useEffect(() => {
-    const handleHashChange = () => {
-      const hash = window.location.hash;
-      if (hash === '#blog-page' || hash === '#articulos') {
-        setCurrentView('blog');
-      } else if (hash === '#admin') {
+    const handleRouteSync = () => {
+      const path = window.location.pathname.toLowerCase().replace(/\/$/, '');
+      const hash = window.location.hash.toLowerCase();
+
+      if (path === '/aura' || hash === '#aura' || path === '/admin' || hash === '#admin') {
         if (!isAdmin) {
           setShowLoginModal(true);
         } else {
           setCurrentView('admin');
+          // Standardize URL to clean /aura without #
+          if (window.location.hash === '#aura' || window.location.hash === '#admin' || path === '/admin') {
+            window.history.replaceState(null, '', '/aura');
+          }
         }
+      } else if (hash === '#blog-page' || hash === '#articulos') {
+        setCurrentView('blog');
       }
     };
 
-    window.addEventListener('hashchange', handleHashChange);
-    // Check initial hash
-    if (window.location.hash === '#admin') {
-      if (!isAdmin) {
-        setShowLoginModal(true);
-      } else {
-        setCurrentView('admin');
-      }
-    }
+    window.addEventListener('popstate', handleRouteSync);
+    window.addEventListener('hashchange', handleRouteSync);
 
-    return () => window.removeEventListener('hashchange', handleHashChange);
+    // Initial check on mount
+    handleRouteSync();
+
+    return () => {
+      window.removeEventListener('popstate', handleRouteSync);
+      window.removeEventListener('hashchange', handleRouteSync);
+    };
   }, [isAdmin]);
 
   // Persist posts
@@ -240,13 +256,28 @@ export const BlogProvider = ({ children }) => {
   const navigateToAdmin = () => {
     setSelectedArticle(null);
     setCurrentView('admin');
-    window.location.hash = 'admin';
+    window.history.replaceState(null, '', '/aura');
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleAdminLogout = () => {
+    setIsAdmin(false);
+    setSelectedArticle(null);
+    setCurrentView('landing');
+    if (typeof window !== 'undefined') {
+      sessionStorage.removeItem('nayarit_is_admin');
+      window.history.replaceState(null, '', '/');
+      window.location.hash = '';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   const navigateToLanding = (targetSection = 'hero') => {
     setSelectedArticle(null);
     setCurrentView('landing');
+    if (typeof window !== 'undefined') {
+      window.history.replaceState(null, '', '/');
+    }
     if (targetSection) {
       window.location.hash = targetSection;
       setTimeout(() => {
@@ -255,7 +286,6 @@ export const BlogProvider = ({ children }) => {
         else window.scrollTo({ top: 0, behavior: 'smooth' });
       }, 50);
     } else {
-      window.history.replaceState(null, '', window.location.pathname);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
@@ -388,6 +418,7 @@ export const BlogProvider = ({ children }) => {
         navigateToBlog,
         navigateToLanding,
         navigateToAdmin,
+        handleAdminLogout,
         selectedArticle,
         setSelectedArticle,
         openArticle,

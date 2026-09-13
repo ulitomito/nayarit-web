@@ -142,6 +142,7 @@ export const AdminDashboard = () => {
     openArticle,
     navigateToLanding,
     navigateToBlog,
+    handleAdminLogout,
     getCategoryBadge
   } = useBlog();
 
@@ -543,10 +544,7 @@ export const AdminDashboard = () => {
         <div className="p-4 border-t border-white/10">
           <button
             type="button"
-            onClick={() => {
-              setIsAdmin(false);
-              navigateToLanding('hero');
-            }}
+            onClick={handleAdminLogout}
             className="w-full py-2.5 px-3.5 rounded-xl bg-red-500/20 hover:bg-red-500/30 text-red-200 text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer border border-red-500/30"
           >
             <LogOut className="w-3.5 h-3.5" />
