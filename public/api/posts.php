@@ -111,6 +111,9 @@ if ($method === 'GET') {
         }
     } else {
         header('X-DB-Status: fallback_json');
+        if (!empty($GLOBALS['lastDbError'])) {
+            header('X-DB-Error: ' . preg_replace('/[\r\n]+/', ' ', $GLOBALS['lastDbError']));
+        }
         echo json_encode(getJsonPosts($jsonFile), JSON_UNESCAPED_UNICODE);
         exit;
     }

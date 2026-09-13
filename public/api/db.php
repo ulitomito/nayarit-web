@@ -47,6 +47,7 @@ function getDbConnection() {
 
         return $pdo;
     } catch (PDOException $e) {
+        $GLOBALS['lastDbError'] = $e->getMessage();
         error_log("DB Connection failed: " . $e->getMessage());
         return null;
     }
