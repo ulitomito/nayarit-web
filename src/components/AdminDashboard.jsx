@@ -286,19 +286,6 @@ export const AdminDashboard = () => {
               <Phone className="w-4 h-4 text-[#C59A47]" />
               <span>Contacto y Redes</span>
             </button>
-
-            <button
-              type="button"
-              onClick={() => setActiveTab('settings')}
-              className={`w-full flex items-center gap-3 px-3.5 py-3 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
-                activeTab === 'settings'
-                  ? 'bg-[#153A26] text-[#E3B86C] shadow-md border border-[#C59A47]/30'
-                  : 'text-white/80 hover:bg-white/5 hover:text-white'
-              }`}
-            >
-              <Settings className="w-4 h-4 text-[#C59A47]" />
-              <span>Base de Datos & SEO</span>
-            </button>
           </nav>
         </div>
 
@@ -337,13 +324,11 @@ export const AdminDashboard = () => {
               {activeTab === 'posts' && 'Gestión de Artículos del Blog'}
               {activeTab === 'destinations' && 'Galería de Destinos Inmobiliarios'}
               {activeTab === 'contact' && 'Información de Contacto y Redes Sociales'}
-              {activeTab === 'settings' && 'Configuración de Base de Datos y SEO'}
             </h2>
             <p className="text-xs text-[#5C6B62] mt-0.5">
               {activeTab === 'posts' && 'Publica, edita o elimina artículos con formato bilingüe y Markdown.'}
               {activeTab === 'destinations' && 'Personaliza imágenes y etiquetas de los 7 destinos clave en Nayarit.'}
               {activeTab === 'contact' && 'Actualiza el WhatsApp, teléfono de oficina y redes oficiales de NRE.'}
-              {activeTab === 'settings' && 'Monitorea la conexión con MySQL (u543141245_UliNRE) y rendimiento SEO.'}
             </p>
           </div>
 
@@ -362,11 +347,6 @@ export const AdminDashboard = () => {
                 <span>Nuevo Artículo</span>
               </button>
             )}
-
-            <div className="px-3 py-1.5 rounded-xl bg-[#153A26]/10 border border-[#153A26]/20 text-[11px] font-bold text-[#153A26] flex items-center gap-1.5">
-              <Database className="w-3.5 h-3.5 text-[#C59A47]" />
-              <span className="hidden sm:inline">DB:</span> u543141245_UliNRE
-            </div>
           </div>
         </header>
 
@@ -723,26 +703,6 @@ export const AdminDashboard = () => {
                         : 'Número completo validado con éxito.'}
                     </p>
                   )}
-
-                  {/* Vista Previa Inteligente en Segundo Plano */}
-                  <div className="mt-3 p-3.5 rounded-2xl bg-[#FAF7F2] border border-[#DFD5C4]/70 space-y-2 text-xs">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] text-[#5C6B62] font-semibold">
-                        Formato para visitantes en la web:
-                      </span>
-                      <span className="font-bold text-[#153A26] font-mono">
-                        {formatHumanPhone(currentCountry.dialCode, phoneDigits) || '+52 (311) 118-7229'}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between border-t border-[#DFD5C4]/50 pt-2">
-                      <span className="text-[11px] text-[#5C6B62] font-semibold">
-                        Enlace directo de WhatsApp:
-                      </span>
-                      <span className="font-bold text-[#0B1E14] font-mono text-[11px]">
-                        +{currentCountry.dialCode}{phoneDigits || '...'}
-                      </span>
-                    </div>
-                  </div>
                 </div>
 
                 <div>
@@ -800,83 +760,6 @@ export const AdminDashboard = () => {
                   </button>
                 </div>
               </form>
-            </div>
-          )}
-
-          {/* TAB 4: CONFIGURACIÓN Y SEO */}
-          {activeTab === 'settings' && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in">
-              {/* DB Status Card */}
-              <div className="bg-white rounded-3xl border border-[#DFD5C4] p-6 shadow-xs space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-[#153A26] text-[#E3B86C] flex items-center justify-center">
-                    <Database className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="font-serif font-bold text-base text-[#0B1E14]">
-                      Base de Datos MySQL
-                    </h4>
-                    <span className="text-[11px] text-emerald-700 font-bold">● Conexión Activa Hostinger</span>
-                  </div>
-                </div>
-
-                <div className="p-3.5 rounded-2xl bg-[#FAF7F2] border border-[#DFD5C4]/70 space-y-2 text-xs">
-                  <div className="flex justify-between">
-                    <span className="text-[#5C6B62]">Nombre de Base de Datos:</span>
-                    <strong className="font-mono text-[#0B1E14]">u543141245_UliNRE</strong>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-[#5C6B62]">Usuario MySQL:</span>
-                    <strong className="font-mono text-[#0B1E14]">u543141245_UliNREAdmin</strong>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-[#5C6B62]">Tablas creadas:</span>
-                    <strong className="text-[#0B1E14]">admin_users, blog_posts</strong>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-[#5C6B62]">Codificación:</span>
-                    <strong className="text-[#0B1E14]">utf8mb4_unicode_ci</strong>
-                  </div>
-                </div>
-
-                <p className="text-xs text-[#5C6B62] leading-relaxed">
-                  Tus artículos y credenciales se resguardan de forma permanente e independiente del navegador de cada cliente.
-                </p>
-              </div>
-
-              {/* SEO Status Card */}
-              <div className="bg-white rounded-3xl border border-[#DFD5C4] p-6 shadow-xs space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-[#153A26] text-[#E3B86C] flex items-center justify-center">
-                    <Globe className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <h4 className="font-serif font-bold text-base text-[#0B1E14]">
-                      Estrategia SEO para Google
-                    </h4>
-                    <span className="text-[11px] text-emerald-700 font-bold">● Indexación Rápida Garantizada</span>
-                  </div>
-                </div>
-
-                <div className="p-3.5 rounded-2xl bg-[#FAF7F2] border border-[#DFD5C4]/70 space-y-2 text-xs">
-                  <div className="flex items-center gap-2 text-[#0B1E14]">
-                    <ShieldCheck className="w-4 h-4 text-[#C59A47] shrink-0" />
-                    <span>Metaetiquetas & OpenGraph en HTML estático</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-[#0B1E14]">
-                    <ShieldCheck className="w-4 h-4 text-[#C59A47] shrink-0" />
-                    <span>Schema JSON-LD LocalBusiness activo para Google</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-[#0B1E14]">
-                    <ShieldCheck className="w-4 h-4 text-[#C59A47] shrink-0" />
-                    <span>Artículos del blog indexables por palabras clave</span>
-                  </div>
-                </div>
-
-                <p className="text-xs text-[#5C6B62] leading-relaxed">
-                  La estructura de la web permite que Googlebot lea el contenido en milisegundos sin retrasos por consultas a base de datos.
-                </p>
-              </div>
             </div>
           )}
 
