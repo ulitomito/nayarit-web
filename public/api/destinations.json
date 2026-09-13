@@ -1,0 +1,51 @@
+[
+  {
+    "id": "tepic",
+    "name": { "es": "Tepic", "en": "Tepic" },
+    "desc": { "es": "Capital del Estado, modernización y alta plusvalía urbana.", "en": "State Capital, modernization, and urban appreciation." },
+    "tag": { "es": "Capital & Centro Financiero", "en": "State Capital & Urban Hub" },
+    "image": "https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=80"
+  },
+  {
+    "id": "mita",
+    "name": { "es": "Punta de Mita", "en": "Punta de Mita" },
+    "desc": { "es": "Península exclusiva, resorts de ultra lujo y campos de golf.", "en": "Exclusive peninsula, ultra-luxury resorts, and championship golf." },
+    "tag": { "es": "Exclusividad & Lujo", "en": "World-Class Exclusivity" },
+    "image": "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1200&q=80"
+  },
+  {
+    "id": "sayulita",
+    "name": { "es": "Sayulita", "en": "Sayulita" },
+    "desc": { "es": "Pueblo Mágico cosmopolita, surf de clase mundial y alta rentabilidad vacacional.", "en": "Cosmopolitan Magical Town, surf culture, and top rental yields." },
+    "tag": { "es": "Pueblo Mágico & Surf", "en": "Magical Town & Surf" },
+    "image": "https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80"
+  },
+  {
+    "id": "sanpancho",
+    "name": { "es": "San Pancho", "en": "San Pancho" },
+    "desc": { "es": "La capital cultural de la Riviera, polo ecuestre y arquitectura sustentable.", "en": "Cultural capital of the Riviera, polo club, and eco-architecture." },
+    "tag": { "es": "Santuario Ecológico", "en": "Eco-Sanctuary" },
+    "image": "https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=1200&q=80"
+  },
+  {
+    "id": "litibu",
+    "name": { "es": "Litibú & Higuera Blanca", "en": "Litibú & Higuera Blanca" },
+    "desc": { "es": "Playas vírgenes, privacidad absoluta y desarrollo de baja densidad.", "en": "Pristine beaches, tranquil privacy, and sustainable low-density growth." },
+    "tag": { "es": "Playa Virgen & Privacidad", "en": "Untouched & Secluded" },
+    "image": "https://images.unsplash.com/photo-1510414842594-a61c69b5ae57?auto=format&fit=crop&w=1200&q=80"
+  },
+  {
+    "id": "compostela",
+    "name": { "es": "Compostela & Costa Canuva", "en": "Compostela & Costa Canuva" },
+    "desc": { "es": "Historia colonial, tradición cafetalera y la nueva joya de la costa.", "en": "Colonial heritage, coffee traditions, and emerging master-planned coast." },
+    "tag": { "es": "Pueblo Mágico & Costa Canuva", "en": "Colonial Town & Canuva" },
+    "image": "https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=80"
+  },
+  {
+    "id": "nuevo",
+    "name": { "es": "Nuevo Nayarit", "en": "Nuevo Nayarit" },
+    "desc": { "es": "Canales náuticos, marinas, condominios frente al mar e infraestructura de primer nivel.", "en": "Navigable canals, yacht marinas, and premier beachfront luxury." },
+    "tag": { "es": "Infraestructura & Marinas", "en": "Marinas & Modern Living" },
+    "image": "https://images.unsplash.com/photo-1540555700478-4be289fbecef?auto=format&fit=crop&w=1200&q=80"
+  }
+]

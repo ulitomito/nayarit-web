@@ -159,6 +159,32 @@ export const BlogProvider = ({ children }) => {
     return initialDestinations;
   });
 
+  // Fetch destinations from backend API / database on mount for all visitors
+  useEffect(() => {
+    let isMounted = true;
+    const fetchDestinationsFromApi = async () => {
+      try {
+        const res = await fetch('/api/destinations.php?t=' + Date.now());
+        if (res.ok) {
+          const serverDests = await res.json();
+          if (Array.isArray(serverDests) && serverDests.length > 0 && isMounted) {
+            setDestinations(serverDests);
+            try {
+              localStorage.setItem('nayarit_destinations', JSON.stringify(serverDests));
+            } catch (e) {}
+          }
+        }
+      } catch (err) {
+        console.warn('API /api/destinations.php unavailable, using local cache:', err);
+      }
+    };
+
+    fetchDestinationsFromApi();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   // Contact info data in state with persistence
   const [contactInfo, setContactInfo] = useState(() => {
     const saved = localStorage.getItem('nayarit_contact_info');
@@ -373,9 +399,39 @@ export const BlogProvider = ({ children }) => {
   };
 
   const updateDestination = (id, updatedFields) => {
-    setDestinations((prev) =>
-      prev.map((d) => (d.id === id ? { ...d, ...updatedFields } : d))
-    );
+    let updatedDest = null;
+    setDestinations((prev) => {
+      const next = prev.map((d) => {
+        if (d.id === id) {
+          updatedDest = { ...d, ...updatedFields };
+          return updatedDest;
+        }
+        return d;
+      });
+      try {
+        localStorage.setItem('nayarit_destinations', JSON.stringify(next));
+      } catch (e) {}
+      return next;
+    });
+
+    // Asynchronously send to /api/destinations.php to persist in the server / database
+    fetch('/api/destinations.php', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, ...updatedFields }),
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        console.log('Destination synced with server/database:', data);
+        if (data?.destination) {
+          setDestinations((curr) =>
+            curr.map((d) => (d.id === id ? { ...d, ...data.destination } : d))
+          );
+        }
+      })
+      .catch((err) => {
+        console.error('Error syncing destination to server database:', err);
+      });
   };
 
   const updateContactInfo = (newInfo) => {
