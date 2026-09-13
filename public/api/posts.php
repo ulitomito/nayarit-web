@@ -1,13 +1,14 @@
 <?php
-// CORS headers & JSON content type
-header('Content-Type: application/json; charset=utf-8');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, DELETE, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization, X-Requested-With');
+declare(strict_types=1);
 
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit;
+require_once __DIR__ . '/security.php';
+
+sendApiHeaders('GET, POST, DELETE, OPTIONS');
+handleOptions('GET, POST, DELETE, OPTIONS');
+
+$method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+if ($method === 'POST' || $method === 'DELETE') {
+    requireAdmin(true);
 }
 
 require_once __DIR__ . '/db.php';
@@ -15,250 +16,195 @@ require_once __DIR__ . '/db.php';
 $pdo = getDbConnection();
 $jsonFile = __DIR__ . '/posts.json';
 
-// Helper to read posts from JSON backup
-function getJsonPosts($jsonFile) {
-    if (file_exists($jsonFile)) {
-        $content = file_get_contents($jsonFile);
-        $decoded = json_decode($content, true);
-        if (is_array($decoded)) {
-            return $decoded;
-        }
+function formatPostRow(array $row): array
+{
+    return [
+        'id' => (string)$row['id'],
+        'status' => (string)($row['status'] ?? 'published'),
+        'category' => (string)($row['category'] ?? 'legal'),
+        'date' => (string)($row['date'] ?? ''),
+        'readTime' => (int)($row['read_time'] ?? 4),
+        'author' => (string)($row['author'] ?? 'Equipo Legal Nayarit Real Estate'),
+        'image' => (string)($row['image'] ?? ''),
+        'title' => [
+            'es' => (string)($row['title_es'] ?? ''),
+            'en' => (string)($row['title_en'] ?? ''),
+        ],
+        'excerpt' => [
+            'es' => (string)($row['excerpt_es'] ?? ''),
+            'en' => (string)($row['excerpt_en'] ?? ''),
+        ],
+        'content' => [
+            'es' => sanitizeRichContent((string)($row['content_es'] ?? '')),
+            'en' => sanitizeRichContent((string)($row['content_en'] ?? '')),
+        ],
+    ];
+}
+
+function publicPostsOnly(array $posts): array
+{
+    if (isAdminSession()) {
+        return array_values($posts);
     }
-    return [];
+    return array_values(array_filter($posts, static fn(array $post): bool => ($post['status'] ?? 'published') !== 'draft'));
 }
-
-// Helper to save posts to JSON backup
-function saveJsonPosts($jsonFile, $posts) {
-    file_put_contents($jsonFile, json_encode($posts, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
-}
-
-$method = $_SERVER['REQUEST_METHOD'];
 
 if ($method === 'GET') {
+    $posts = readJsonArray($jsonFile);
+    $postsById = [];
+    foreach ($posts as $post) {
+        if (is_array($post) && isset($post['id'])) {
+            $postsById[(string)$post['id']] = $post;
+        }
+    }
     if ($pdo) {
         try {
-            $stmt = $pdo->query("SELECT * FROM blog_posts ORDER BY date DESC, created_at DESC");
-            $rows = $stmt->fetchAll();
-
-            if (empty($rows)) {
-                // Table is empty, seed from JSON
-                $jsonPosts = getJsonPosts($jsonFile);
-                if (!empty($jsonPosts)) {
-                    $insertSql = "INSERT INTO blog_posts (id, status, category, date, read_time, author, image, title_es, title_en, excerpt_es, excerpt_en, content_es, content_en) 
-                                  VALUES (:id, :status, :category, :date, :read_time, :author, :image, :title_es, :title_en, :excerpt_es, :excerpt_en, :content_es, :content_en)";
-                    $insertStmt = $pdo->prepare($insertSql);
-                    foreach ($jsonPosts as $p) {
-                        $insertStmt->execute([
-                            ':id' => $p['id'],
-                            ':status' => $p['status'] ?? 'published',
-                            ':category' => $p['category'] ?? 'legal',
-                            ':date' => $p['date'] ?? date('Y-m-d'),
-                            ':read_time' => $p['readTime'] ?? 4,
-                            ':author' => $p['author'] ?? 'Equipo Legal Nayarit Real Estate',
-                            ':image' => $p['image'] ?? '',
-                            ':title_es' => is_array($p['title']) ? ($p['title']['es'] ?? '') : ($p['title'] ?? ''),
-                            ':title_en' => is_array($p['title']) ? ($p['title']['en'] ?? '') : '',
-                            ':excerpt_es' => is_array($p['excerpt']) ? ($p['excerpt']['es'] ?? '') : ($p['excerpt'] ?? ''),
-                            ':excerpt_en' => is_array($p['excerpt']) ? ($p['excerpt']['en'] ?? '') : '',
-                            ':content_es' => is_array($p['content']) ? ($p['content']['es'] ?? '') : ($p['content'] ?? ''),
-                            ':content_en' => is_array($p['content']) ? ($p['content']['en'] ?? '') : '',
-                        ]);
-                    }
-                    echo json_encode($jsonPosts, JSON_UNESCAPED_UNICODE);
-                    exit;
-                }
+            $rows = $pdo->query('SELECT * FROM blog_posts ORDER BY date DESC, created_at DESC')->fetchAll();
+            foreach (array_map('formatPostRow', $rows) as $databasePost) {
+                $postsById[$databasePost['id']] = $databasePost;
             }
-
-            // Format rows to match the React frontend structure
-            $posts = [];
-            foreach ($rows as $row) {
-                $posts[] = [
-                    'id' => $row['id'],
-                    'status' => $row['status'] ?? 'published',
-                    'category' => $row['category'] ?? 'legal',
-                    'date' => $row['date'],
-                    'readTime' => (int)($row['read_time'] ?? 4),
-                    'author' => $row['author'] ?? 'Equipo Legal Nayarit Real Estate',
-                    'image' => $row['image'] ?? '',
-                    'title' => [
-                        'es' => $row['title_es'] ?? '',
-                        'en' => $row['title_en'] ?? '',
-                    ],
-                    'excerpt' => [
-                        'es' => $row['excerpt_es'] ?? '',
-                        'en' => $row['excerpt_en'] ?? '',
-                    ],
-                    'content' => [
-                        'es' => $row['content_es'] ?? '',
-                        'en' => $row['content_en'] ?? '',
-                    ],
-                ];
-            }
-
-            // Sync to JSON file for offline backup
-            if (!empty($posts)) {
-                saveJsonPosts($jsonFile, $posts);
-            }
-
-            header('X-DB-Status: mysql_connected');
-            echo json_encode($posts, JSON_UNESCAPED_UNICODE);
-            exit;
-        } catch (Exception $e) {
-            header('X-DB-Error: ' . $e->getMessage());
-            header('X-DB-Status: fallback_json');
-            echo json_encode(getJsonPosts($jsonFile), JSON_UNESCAPED_UNICODE);
-            exit;
+        } catch (PDOException $e) {
+            error_log('Unable to read blog posts from database');
         }
-    } else {
-        header('X-DB-Status: fallback_json');
-        if (!empty($GLOBALS['lastDbError'])) {
-            header('X-DB-Error: ' . preg_replace('/[\r\n]+/', ' ', $GLOBALS['lastDbError']));
-        }
-        echo json_encode(getJsonPosts($jsonFile), JSON_UNESCAPED_UNICODE);
-        exit;
     }
+
+    $posts = array_values($postsById);
+    usort($posts, static fn(array $left, array $right): int => strcmp((string)($right['date'] ?? ''), (string)($left['date'] ?? '')));
+    foreach ($posts as &$post) {
+        if (isset($post['content']) && is_array($post['content'])) {
+            $post['content']['es'] = sanitizeRichContent($post['content']['es'] ?? '');
+            $post['content']['en'] = sanitizeRichContent($post['content']['en'] ?? '');
+        }
+    }
+    unset($post);
+
+    jsonResponse(publicPostsOnly($posts));
 }
 
 if ($method === 'POST') {
-    $rawInput = file_get_contents('php://input');
-    $data = json_decode($rawInput, true);
+    $data = readJsonBody();
+    $id = isset($data['id']) && $data['id'] !== ''
+        ? validateId($data['id'])
+        : 'post-' . (string)round(microtime(true) * 1000);
 
-    if (!$data || !is_array($data)) {
-        http_response_code(400);
-        echo json_encode(['error' => 'Invalid JSON input']);
-        exit;
+    $status = cleanPlainText($data['status'] ?? 'draft', 20, true);
+    if (!in_array($status, ['draft', 'published'], true)) {
+        jsonResponse(['error' => 'Invalid post status'], 422);
+    }
+    $category = cleanPlainText($data['category'] ?? 'legal', 50, true);
+    if (!in_array($category, ['legal', 'foreigners', 'investment'], true)) {
+        jsonResponse(['error' => 'Invalid category'], 422);
     }
 
-    $id = $data['id'] ?? ('post-' . round(microtime(true) * 1000));
-    $status = $data['status'] ?? 'draft';
-    $category = $data['category'] ?? 'legal';
-    $date = $data['date'] ?? date('Y-m-d');
-    $readTime = (int)($data['readTime'] ?? $data['read_time'] ?? 4);
-    $author = $data['author'] ?? 'Equipo Legal Nayarit Real Estate';
-    $image = $data['image'] ?? '';
+    $date = cleanPlainText($data['date'] ?? date('Y-m-d'), 10, true);
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+        jsonResponse(['error' => 'Invalid date'], 422);
+    }
+    $readTime = filter_var($data['readTime'] ?? $data['read_time'] ?? 4, FILTER_VALIDATE_INT, [
+        'options' => ['min_range' => 1, 'max_range' => 60],
+    ]);
+    if ($readTime === false) {
+        jsonResponse(['error' => 'Invalid read time'], 422);
+    }
 
-    $titleEs = is_array($data['title'] ?? null) ? ($data['title']['es'] ?? '') : ($data['titleEs'] ?? $data['title'] ?? '');
-    $titleEn = is_array($data['title'] ?? null) ? ($data['title']['en'] ?? '') : ($data['titleEn'] ?? '');
-
-    $excerptEs = is_array($data['excerpt'] ?? null) ? ($data['excerpt']['es'] ?? '') : ($data['excerptEs'] ?? $data['excerpt'] ?? '');
-    $excerptEn = is_array($data['excerpt'] ?? null) ? ($data['excerpt']['en'] ?? '') : ($data['excerptEn'] ?? '');
-
-    $contentEs = is_array($data['content'] ?? null) ? ($data['content']['es'] ?? '') : ($data['contentEs'] ?? $data['content'] ?? '');
-    $contentEn = is_array($data['content'] ?? null) ? ($data['content']['en'] ?? '') : ($data['contentEn'] ?? '');
+    $title = is_array($data['title'] ?? null) ? $data['title'] : [];
+    $excerpt = is_array($data['excerpt'] ?? null) ? $data['excerpt'] : [];
+    $content = is_array($data['content'] ?? null) ? $data['content'] : [];
 
     $normalizedPost = [
         'id' => $id,
         'status' => $status,
         'category' => $category,
         'date' => $date,
-        'readTime' => $readTime,
-        'author' => $author,
-        'image' => $image,
-        'title' => ['es' => $titleEs, 'en' => $titleEn],
-        'excerpt' => ['es' => $excerptEs, 'en' => $excerptEn],
-        'content' => ['es' => $contentEs, 'en' => $contentEn],
+        'readTime' => (int)$readTime,
+        'author' => cleanPlainText($data['author'] ?? 'Equipo Legal Nayarit Real Estate', 150, true),
+        'image' => validateImage($data['image'] ?? ''),
+        'title' => [
+            'es' => cleanPlainText($title['es'] ?? $data['titleEs'] ?? '', 255, true),
+            'en' => cleanPlainText($title['en'] ?? $data['titleEn'] ?? '', 255),
+        ],
+        'excerpt' => [
+            'es' => cleanPlainText($excerpt['es'] ?? $data['excerptEs'] ?? '', 2000, true),
+            'en' => cleanPlainText($excerpt['en'] ?? $data['excerptEn'] ?? '', 2000),
+        ],
+        'content' => [
+            'es' => sanitizeRichContent($content['es'] ?? $data['contentEs'] ?? ''),
+            'en' => sanitizeRichContent($content['en'] ?? $data['contentEn'] ?? ''),
+        ],
     ];
 
-    // Always update JSON backup file so all visitors immediately see it
-    $jsonPosts = getJsonPosts($jsonFile);
-    $found = false;
-    foreach ($jsonPosts as $idx => $p) {
-        if ($p['id'] === $id) {
-            $jsonPosts[$idx] = $normalizedPost;
-            $found = true;
-            break;
+    updateJsonArrayAtomic($jsonFile, static function (array $posts) use ($normalizedPost, $id): array {
+        $found = false;
+        foreach ($posts as $index => $post) {
+            if (($post['id'] ?? null) === $id) {
+                $posts[$index] = $normalizedPost;
+                $found = true;
+                break;
+            }
         }
-    }
-    if (!$found) {
-        array_unshift($jsonPosts, $normalizedPost);
-    }
-    saveJsonPosts($jsonFile, $jsonPosts);
+        if (!$found) {
+            array_unshift($posts, $normalizedPost);
+        }
+        return array_values($posts);
+    });
 
-    // If MySQL is connected, save directly to MySQL
     $dbSaved = false;
     if ($pdo) {
         try {
-            $sql = "INSERT INTO blog_posts (id, status, category, date, read_time, author, image, title_es, title_en, excerpt_es, excerpt_en, content_es, content_en)
-                    VALUES (:id, :status, :category, :date, :read_time, :author, :image, :title_es, :title_en, :excerpt_es, :excerpt_en, :content_es, :content_en)
-                    ON DUPLICATE KEY UPDATE
-                      status = VALUES(status),
-                      category = VALUES(category),
-                      date = VALUES(date),
-                      read_time = VALUES(read_time),
-                      author = VALUES(author),
-                      image = VALUES(image),
-                      title_es = VALUES(title_es),
-                      title_en = VALUES(title_en),
-                      excerpt_es = VALUES(excerpt_es),
-                      excerpt_en = VALUES(excerpt_en),
-                      content_es = VALUES(content_es),
-                      content_en = VALUES(content_en),
-                      updated_at = CURRENT_TIMESTAMP";
-
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute([
+            $statement = $pdo->prepare(
+                'INSERT INTO blog_posts (id, status, category, date, read_time, author, image, title_es, title_en, excerpt_es, excerpt_en, content_es, content_en)
+                 VALUES (:id, :status, :category, :date, :read_time, :author, :image, :title_es, :title_en, :excerpt_es, :excerpt_en, :content_es, :content_en)
+                 ON DUPLICATE KEY UPDATE status = VALUES(status), category = VALUES(category), date = VALUES(date),
+                 read_time = VALUES(read_time), author = VALUES(author), image = VALUES(image), title_es = VALUES(title_es),
+                 title_en = VALUES(title_en), excerpt_es = VALUES(excerpt_es), excerpt_en = VALUES(excerpt_en),
+                 content_es = VALUES(content_es), content_en = VALUES(content_en), updated_at = CURRENT_TIMESTAMP'
+            );
+            $statement->execute([
                 ':id' => $id,
                 ':status' => $status,
                 ':category' => $category,
                 ':date' => $date,
                 ':read_time' => $readTime,
-                ':author' => $author,
-                ':image' => $image,
-                ':title_es' => $titleEs,
-                ':title_en' => $titleEn,
-                ':excerpt_es' => $excerptEs,
-                ':excerpt_en' => $excerptEn,
-                ':content_es' => $contentEs,
-                ':content_en' => $contentEn,
+                ':author' => $normalizedPost['author'],
+                ':image' => $normalizedPost['image'],
+                ':title_es' => $normalizedPost['title']['es'],
+                ':title_en' => $normalizedPost['title']['en'],
+                ':excerpt_es' => $normalizedPost['excerpt']['es'],
+                ':excerpt_en' => $normalizedPost['excerpt']['en'],
+                ':content_es' => $normalizedPost['content']['es'],
+                ':content_en' => $normalizedPost['content']['en'],
             ]);
             $dbSaved = true;
-        } catch (Exception $e) {
-            header('X-DB-Error: ' . $e->getMessage());
+        } catch (PDOException $e) {
+            error_log('Unable to save blog post to database');
         }
     }
 
-    echo json_encode([
-        'success' => true,
-        'db_saved' => $dbSaved,
-        'post' => $normalizedPost,
-    ], JSON_UNESCAPED_UNICODE);
-    exit;
+    jsonResponse(['success' => true, 'db_saved' => $dbSaved, 'post' => $normalizedPost]);
 }
 
 if ($method === 'DELETE') {
-    $id = $_GET['id'] ?? null;
-    if (!$id) {
-        http_response_code(400);
-        echo json_encode(['error' => 'Missing id parameter']);
-        exit;
-    }
+    $id = validateId($_GET['id'] ?? '');
+    updateJsonArrayAtomic(
+        $jsonFile,
+        static fn(array $posts): array => array_values(array_filter(
+            $posts,
+            static fn(array $post): bool => ($post['id'] ?? null) !== $id
+        ))
+    );
 
-    // Remove from JSON file
-    $jsonPosts = getJsonPosts($jsonFile);
-    $jsonPosts = array_values(array_filter($jsonPosts, function($p) use ($id) {
-        return $p['id'] !== $id;
-    }));
-    saveJsonPosts($jsonFile, $jsonPosts);
-
-    // Remove from MySQL if connected
     $dbDeleted = false;
     if ($pdo) {
         try {
-            $stmt = $pdo->prepare("DELETE FROM blog_posts WHERE id = :id");
-            $stmt->execute([':id' => $id]);
+            $statement = $pdo->prepare('DELETE FROM blog_posts WHERE id = :id');
+            $statement->execute([':id' => $id]);
             $dbDeleted = true;
-        } catch (Exception $e) {
-            header('X-DB-Error: ' . $e->getMessage());
+        } catch (PDOException $e) {
+            error_log('Unable to delete blog post from database');
         }
     }
 
-    echo json_encode([
-        'success' => true,
-        'db_deleted' => $dbDeleted,
-        'id' => $id,
-    ], JSON_UNESCAPED_UNICODE);
-    exit;
+    jsonResponse(['success' => true, 'db_deleted' => $dbDeleted, 'id' => $id]);
 }
 
-http_response_code(405);
-echo json_encode(['error' => 'Method not allowed']);
+jsonResponse(['error' => 'Method not allowed'], 405);

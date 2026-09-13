@@ -1,11 +1,8 @@
 import React, { useState } from 'react';
-import { useBlog, ADMIN_PASSWORD } from '../context/BlogContext';
-import { PlusCircle, ShieldCheck, LogOut, BookOpen } from 'lucide-react';
+import { useBlog } from '../context/BlogContext';
 
 export const AdminModals = () => {
   const {
-    isAdmin,
-    setIsAdmin,
     showLoginModal,
     setShowLoginModal,
     loginError,
@@ -15,10 +12,11 @@ export const AdminModals = () => {
     editingPost,
     setEditingPost,
     savePost,
-    navigateToAdmin,
+    loginAdmin,
   } = useBlog();
 
   const [passwordInput, setPasswordInput] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     titleEs: '',
     titleEn: '',
@@ -60,17 +58,18 @@ export const AdminModals = () => {
     }
   }, [editingPost, showPostModal]);
 
-  const handleAdminLogin = (e) => {
+  const handleAdminLogin = async (e) => {
     e.preventDefault();
-    if (passwordInput === ADMIN_PASSWORD) {
-      setIsAdmin(true);
+    setIsSubmitting(true);
+    setLoginError('');
+    try {
+      await loginAdmin(passwordInput);
       setShowLoginModal(false);
       setPasswordInput('');
-      setLoginError('');
-      // Navigate directly to the dedicated Admin Dashboard
-      navigateToAdmin();
-    } else {
-      setLoginError('Contraseña incorrecta. Inténtalo de nuevo.');
+    } catch (error) {
+      setLoginError(error.message || 'No fue posible iniciar sesión.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -119,9 +118,10 @@ export const AdminModals = () => {
                 </button>
                 <button
                   type="submit"
+                  disabled={isSubmitting || !passwordInput}
                   className="flex-1 py-2.5 rounded-xl bg-[#153A26] text-white text-xs font-bold hover:bg-[#0B1E14] shadow-sm cursor-pointer"
                 >
-                  Acceder
+                  {isSubmitting ? 'Verificando…' : 'Acceder'}
                 </button>
               </div>
             </form>

@@ -21,7 +21,6 @@ export const BlogPage = () => {
     openArticle,
     getCategoryBadge,
     isAdmin,
-    setIsAdmin,
     setShowPostModal,
     setEditingPost,
     deletePost,

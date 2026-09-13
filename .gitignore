@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 *.zip
+.env
+.env.*
+!.env.example
+nre-private.php
 
 # Editor directories and files
 .vscode/*
@@ -26,3 +30,4 @@ dist-ssr
 
 # Database scripts and dumps
 *.sql
+!database/migrations/*.sql

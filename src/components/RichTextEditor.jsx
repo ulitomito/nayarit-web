@@ -14,9 +14,53 @@ import {
   Redo
 } from 'lucide-react';
 
+const escapeHtml = (value = '') =>
+  String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+
+export const sanitizeArticleHtml = (html = '') => {
+  if (!html) return '';
+  if (typeof DOMParser === 'undefined') return escapeHtml(html);
+
+  const documentNode = new DOMParser().parseFromString(`<div id="nre-content-root">${html}</div>`, 'text/html');
+  const root = documentNode.getElementById('nre-content-root');
+  if (!root) return '';
+
+  const allowedTags = new Set(['P', 'H2', 'H3', 'STRONG', 'B', 'EM', 'I', 'U', 'UL', 'OL', 'LI', 'BLOCKQUOTE', 'BR', 'A']);
+  const removeEntirely = new Set(['SCRIPT', 'STYLE', 'IFRAME', 'OBJECT', 'EMBED', 'SVG', 'MATH', 'FORM', 'INPUT', 'BUTTON', 'TEXTAREA', 'SELECT', 'LINK', 'META']);
+
+  [...root.querySelectorAll('*')].reverse().forEach((element) => {
+    if (removeEntirely.has(element.tagName)) {
+      element.remove();
+      return;
+    }
+    if (!allowedTags.has(element.tagName)) {
+      element.replaceWith(...element.childNodes);
+      return;
+    }
+
+    [...element.attributes].forEach((attribute) => {
+      const allowed = element.tagName === 'A' && ['href', 'title'].includes(attribute.name.toLowerCase());
+      if (!allowed) element.removeAttribute(attribute.name);
+    });
+
+    if (element.tagName === 'A') {
+      const href = (element.getAttribute('href') || '').trim();
+      if (href && !/^(https:\/\/|mailto:|\/)/i.test(href)) element.removeAttribute('href');
+      element.setAttribute('rel', 'noopener noreferrer nofollow');
+    }
+  });
+
+  return root.innerHTML;
+};
+
 /**
- * Converts legacy markdown (###, **, *, etc.) into clean HTML
- * so existing blog posts render flawlessly in the visual editor.
+ * Converts legacy markdown into allowlisted HTML. Raw HTML is sanitized before
+ * it is rendered or inserted into the editor.
  */
 export const markdownToHtml = (markdown = '') => {
   if (!markdown) return '';
@@ -36,13 +80,13 @@ export const markdownToHtml = (markdown = '') => {
     });
   }
 
-  // If already contains standard HTML block structure (and not raw markdown), return
+  // Existing rich HTML still passes through the allowlist sanitizer.
   if (/<(p|ul|ol|blockquote)[\s>]/i.test(markdown) && !markdown.includes('### ') && !markdown.includes('## ')) {
-    return markdown;
+    return sanitizeArticleHtml(markdown);
   }
 
   const formatInline = (str = '') => {
-    return str
+    return escapeHtml(str)
       .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
       .replace(/\*(.*?)\*/g, '<em>$1</em>');
   };
@@ -126,7 +170,7 @@ export const markdownToHtml = (markdown = '') => {
   }
   flushParagraph();
   flushList();
-  return html;
+  return sanitizeArticleHtml(html);
 };
 
 export const RichTextEditor = ({

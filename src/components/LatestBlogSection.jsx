@@ -11,7 +11,6 @@ export const LatestBlogSection = () => {
     navigateToBlog,
     getCategoryBadge,
     isAdmin,
-    setIsAdmin,
     setShowPostModal,
     setEditingPost,
     deletePost,

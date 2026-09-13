@@ -135,7 +135,6 @@ export const AdminDashboard = () => {
     updateDestination,
     contactInfo,
     updateContactInfo,
-    setIsAdmin,
     setShowPostModal,
     setEditingPost,
     deletePost,

@@ -3,7 +3,6 @@ import { initialBlogPosts } from '../data/initialBlogPosts';
 
 const BlogContext = createContext();
 
-export const ADMIN_PASSWORD = 'nre2026';
 export const WHATSAPP_PHONE = '523111187229';
 
 // Inline Markdown formatter (bold **text**, etc.)
@@ -121,7 +120,10 @@ export const BlogProvider = ({ children }) => {
     const fetchPostsFromApi = async () => {
       try {
         setIsLoadingPosts(true);
-        const res = await fetch('/api/posts.php?t=' + Date.now());
+        const res = await fetch('/api/posts.php?t=' + Date.now(), {
+          credentials: 'same-origin',
+          cache: 'no-store',
+        });
         if (res.ok) {
           const serverPosts = await res.json();
           if (Array.isArray(serverPosts) && serverPosts.length > 0 && isMounted) {
@@ -164,7 +166,10 @@ export const BlogProvider = ({ children }) => {
     let isMounted = true;
     const fetchDestinationsFromApi = async () => {
       try {
-        const res = await fetch('/api/destinations.php?t=' + Date.now());
+        const res = await fetch('/api/destinations.php?t=' + Date.now(), {
+          credentials: 'same-origin',
+          cache: 'no-store',
+        });
         if (res.ok) {
           const serverDests = await res.json();
           if (Array.isArray(serverDests) && serverDests.length > 0 && isMounted) {
@@ -210,8 +215,7 @@ export const BlogProvider = ({ children }) => {
   const [currentView, setCurrentView] = useState(() => {
     if (typeof window !== 'undefined') {
       if (isAuraRoute()) {
-        const authenticated = sessionStorage.getItem('nayarit_is_admin') === 'true';
-        return authenticated ? 'admin' : 'landing';
+        return 'landing';
       }
       const hash = window.location.hash;
       if (hash === '#blog-page' || hash === '#articulos') return 'blog';
@@ -222,13 +226,10 @@ export const BlogProvider = ({ children }) => {
   // Active article selected for full-screen reading
   const [selectedArticle, setSelectedArticle] = useState(null);
 
-  // Admin authentication state with session persistence
-  const [isAdmin, setIsAdmin] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return sessionStorage.getItem('nayarit_is_admin') === 'true';
-    }
-    return false;
-  });
+  // Server-backed admin authentication. No password or trust flag lives in the browser.
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [csrfToken, setCsrfToken] = useState('');
+  const [authChecked, setAuthChecked] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [loginError, setLoginError] = useState('');
 
@@ -237,12 +238,24 @@ export const BlogProvider = ({ children }) => {
   const [editingPost, setEditingPost] = useState(null);
 
   useEffect(() => {
-    if (isAdmin) {
-      sessionStorage.setItem('nayarit_is_admin', 'true');
-    } else {
-      sessionStorage.removeItem('nayarit_is_admin');
-    }
-  }, [isAdmin]);
+    let active = true;
+    fetch('/api/auth.php', { credentials: 'same-origin', cache: 'no-store' })
+      .then((response) => response.ok ? response.json() : Promise.reject(new Error('Auth unavailable')))
+      .then((data) => {
+        if (!active) return;
+        setIsAdmin(data.authenticated === true);
+        setCsrfToken(typeof data.csrfToken === 'string' ? data.csrfToken : '');
+      })
+      .catch(() => {
+        if (!active) return;
+        setIsAdmin(false);
+        setCsrfToken('');
+      })
+      .finally(() => {
+        if (active) setAuthChecked(true);
+      });
+    return () => { active = false; };
+  }, []);
 
   // Persist destinations
   useEffect(() => {
@@ -269,6 +282,7 @@ export const BlogProvider = ({ children }) => {
       const hash = window.location.hash.toLowerCase();
 
       if (path === '/aura' || hash === '#aura' || path === '/admin' || hash === '#admin') {
+        if (!authChecked) return;
         if (!isAdmin) {
           setShowLoginModal(true);
         } else {
@@ -293,7 +307,7 @@ export const BlogProvider = ({ children }) => {
       window.removeEventListener('popstate', handleRouteSync);
       window.removeEventListener('hashchange', handleRouteSync);
     };
-  }, [isAdmin]);
+  }, [isAdmin, authChecked]);
 
   // Cross-tab synchronization: when another tab updates localStorage, sync state across all tabs in real time!
   useEffect(() => {
@@ -352,18 +366,65 @@ export const BlogProvider = ({ children }) => {
   };
 
   const navigateToAdmin = () => {
+    if (!isAdmin) {
+      setShowLoginModal(true);
+      return;
+    }
     setSelectedArticle(null);
     setCurrentView('admin');
     window.history.replaceState(null, '', '/aura');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const handleAdminLogout = () => {
+  const loginAdmin = async (password) => {
+    const response = await fetch('/api/auth.php', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || data.authenticated !== true) {
+      throw new Error(data.error || 'No fue posible iniciar sesión.');
+    }
+
+    setIsAdmin(true);
+    setCsrfToken(typeof data.csrfToken === 'string' ? data.csrfToken : '');
+
+    // Refresh protected content so authenticated users receive drafts as well.
+    const postsResponse = await fetch('/api/posts.php?t=' + Date.now(), {
+      credentials: 'same-origin',
+      cache: 'no-store',
+    });
+    if (postsResponse.ok) {
+      const serverPosts = await postsResponse.json();
+      if (Array.isArray(serverPosts)) setPosts(serverPosts);
+    }
+    setSelectedArticle(null);
+    setCurrentView('admin');
+    window.history.replaceState(null, '', '/aura');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    return true;
+  };
+
+  const handleAdminLogout = async () => {
+    if (csrfToken) {
+      try {
+        await fetch('/api/auth.php', {
+          method: 'DELETE',
+          credentials: 'same-origin',
+          headers: { 'X-CSRF-Token': csrfToken },
+        });
+      } catch (error) {
+        console.warn('No fue posible confirmar el cierre de sesión en el servidor.');
+      }
+    }
     setIsAdmin(false);
+    setCsrfToken('');
+    setPosts((currentPosts) => currentPosts.filter((post) => post.status !== 'draft'));
     setSelectedArticle(null);
     setCurrentView('landing');
     if (typeof window !== 'undefined') {
-      sessionStorage.removeItem('nayarit_is_admin');
       window.history.replaceState(null, '', '/');
       window.location.hash = '';
       window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -399,6 +460,10 @@ export const BlogProvider = ({ children }) => {
   };
 
   const updateDestination = (id, updatedFields) => {
+    if (!isAdmin || !csrfToken) {
+      console.error('Se requiere una sesión administrativa válida.');
+      return;
+    }
     let updatedDest = null;
     setDestinations((prev) => {
       const next = prev.map((d) => {
@@ -417,10 +482,18 @@ export const BlogProvider = ({ children }) => {
     // Asynchronously send to /api/destinations.php to persist in the server / database
     fetch('/api/destinations.php', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken,
+      },
       body: JSON.stringify({ id, ...updatedFields }),
     })
-      .then((res) => res.json())
+      .then(async (res) => {
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) throw new Error(data.error || 'No fue posible guardar el destino.');
+        return data;
+      })
       .then((data) => {
         console.log('Destination synced with server/database:', data);
         if (data?.destination) {
@@ -439,6 +512,10 @@ export const BlogProvider = ({ children }) => {
   };
 
   const deletePost = (postId) => {
+    if (!isAdmin || !csrfToken) {
+      console.error('Se requiere una sesión administrativa válida.');
+      return;
+    }
     if (window.confirm('¿Estás seguro de que deseas eliminar este artículo?')) {
       setPosts((prev) => {
         const next = prev.filter((p) => p.id !== postId);
@@ -454,8 +531,14 @@ export const BlogProvider = ({ children }) => {
       // Persist deletion to backend database / server
       fetch('/api/posts.php?id=' + encodeURIComponent(postId), {
         method: 'DELETE',
+        credentials: 'same-origin',
+        headers: { 'X-CSRF-Token': csrfToken },
       })
-        .then((res) => res.json())
+        .then(async (res) => {
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.error || 'No fue posible eliminar el artículo.');
+          return data;
+        })
         .then((data) => {
           console.log('Post deleted from server/database:', data);
         })
@@ -466,6 +549,10 @@ export const BlogProvider = ({ children }) => {
   };
 
   const savePost = (postData) => {
+    if (!isAdmin || !csrfToken) {
+      console.error('Se requiere una sesión administrativa válida.');
+      return null;
+    }
     const targetId = postData.id || editingPost?.id;
     let savedArticle = null;
 
@@ -537,10 +624,18 @@ export const BlogProvider = ({ children }) => {
       // Asynchronously send to /api/posts.php so it is stored permanently in MySQL DB & server
       fetch('/api/posts.php', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken,
+        },
         body: JSON.stringify(savedArticle),
       })
-        .then((res) => res.json())
+        .then(async (res) => {
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) throw new Error(data.error || 'No fue posible guardar el artículo.');
+          return data;
+        })
         .then((resData) => {
           console.log('Post saved to database and server:', resData);
           if (resData?.post) {
@@ -600,13 +695,13 @@ export const BlogProvider = ({ children }) => {
         navigateToBlog,
         navigateToLanding,
         navigateToAdmin,
+        loginAdmin,
         handleAdminLogout,
         selectedArticle,
         setSelectedArticle,
         openArticle,
         closeArticle,
         isAdmin,
-        setIsAdmin,
         showLoginModal,
         setShowLoginModal,
         loginError,
