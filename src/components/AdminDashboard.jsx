@@ -155,6 +155,7 @@ export const AdminDashboard = () => {
   const fileInputRef = useRef(null);
   const [imageInputMode, setImageInputMode] = useState('upload'); // 'upload' | 'url'
   const [isCompressingImage, setIsCompressingImage] = useState(false);
+  const [isDraggingImage, setIsDraggingImage] = useState(false);
   const [imageUploadError, setImageUploadError] = useState('');
 
   // English completeness modal & notifications
@@ -244,10 +245,13 @@ export const AdminDashboard = () => {
     });
   };
 
-  // Upload image handler with automatic resizing & compression
-  const handleImageUpload = async (e) => {
-    const file = e.target.files?.[0];
+  // Process and compress image file (from input or drag-and-drop)
+  const processImageFile = async (file) => {
     if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setImageUploadError('Por favor selecciona o arrastra una imagen válida (JPG, PNG o WEBP).');
+      return;
+    }
     setImageUploadError('');
     setIsCompressingImage(true);
     try {
@@ -258,7 +262,38 @@ export const AdminDashboard = () => {
       setImageUploadError(err.message || 'Error al procesar la imagen');
     } finally {
       setIsCompressingImage(false);
-      if (e.target) e.target.value = '';
+    }
+  };
+
+  // Upload image handler with automatic resizing & compression
+  const handleImageUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      processImageFile(file);
+    }
+    if (e.target) e.target.value = '';
+  };
+
+  // Drag and drop handlers for image
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingImage(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingImage(false);
+  };
+
+  const handleDropImage = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDraggingImage(false);
+    const file = e.dataTransfer?.files?.[0];
+    if (file) {
+      processImageFile(file);
     }
   };
 
@@ -1172,13 +1207,27 @@ export const AdminDashboard = () => {
 
                       {/* Current Image Preview if exists */}
                       {articleFormData.image && (
-                        <div className="relative rounded-2xl overflow-hidden border border-[#DFD5C4] bg-stone-100 max-h-60 group shadow-xs">
+                        <div
+                          onDragOver={handleDragOver}
+                          onDragEnter={handleDragOver}
+                          onDragLeave={handleDragLeave}
+                          onDrop={handleDropImage}
+                          className={`relative rounded-2xl overflow-hidden border bg-stone-100 max-h-60 group shadow-xs transition-all ${
+                            isDraggingImage ? 'border-[#153A26] ring-4 ring-[#153A26]/20' : 'border-[#DFD5C4]'
+                          }`}
+                        >
                           <img
                             src={articleFormData.image}
                             alt="Portada de publicación"
                             className="w-full h-52 object-cover"
                           />
-                          <div className="absolute top-3 right-3 flex items-center gap-2">
+                          {isDraggingImage && (
+                            <div className="absolute inset-0 bg-[#153A26]/80 backdrop-blur-xs flex flex-col items-center justify-center text-white p-4 text-center z-20 animate-fade-in">
+                              <ImagePlus className="w-8 h-8 text-[#E3B86C] mb-2 animate-bounce" />
+                              <p className="text-xs font-bold">¡Suelta la nueva foto aquí para reemplazarla!</p>
+                            </div>
+                          )}
+                          <div className="absolute top-3 right-3 flex items-center gap-2 z-10">
                             <button
                               type="button"
                               onClick={() => fileInputRef.current?.click()}
@@ -1196,7 +1245,7 @@ export const AdminDashboard = () => {
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </div>
-                          <div className="absolute bottom-2 left-3 bg-black/60 backdrop-blur-xs px-2.5 py-1 rounded-lg text-[10px] text-white font-medium flex items-center gap-1">
+                          <div className="absolute bottom-2 left-3 bg-black/60 backdrop-blur-xs px-2.5 py-1 rounded-lg text-[10px] text-white font-medium flex items-center gap-1 z-10">
                             <CheckCircle2 className="w-3 h-3 text-emerald-400" />
                             <span>Imagen lista para la publicación</span>
                           </div>
@@ -1216,16 +1265,30 @@ export const AdminDashboard = () => {
                           {!articleFormData.image && (
                             <div
                               onClick={() => fileInputRef.current?.click()}
-                              className="border-2 border-dashed border-[#C59A47]/60 hover:border-[#C59A47] bg-white hover:bg-[#FAF7F2] p-6 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer transition-all group"
+                              onDragOver={handleDragOver}
+                              onDragEnter={handleDragOver}
+                              onDragLeave={handleDragLeave}
+                              onDrop={handleDropImage}
+                              className={`border-2 border-dashed p-7 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer transition-all group ${
+                                isDraggingImage
+                                  ? 'border-[#153A26] bg-emerald-50/70 scale-[1.01] ring-4 ring-[#153A26]/10'
+                                  : 'border-[#C59A47]/60 hover:border-[#C59A47] bg-white hover:bg-[#FAF7F2]'
+                              }`}
                             >
-                              <div className="w-12 h-12 rounded-2xl bg-[#153A26]/10 text-[#153A26] flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
-                                <ImagePlus className="w-6 h-6 text-[#C59A47]" />
+                              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-2.5 transition-all ${
+                                isDraggingImage ? 'bg-[#153A26] text-[#E3B86C] scale-110' : 'bg-[#153A26]/10 text-[#153A26] group-hover:scale-110'
+                              }`}>
+                                <ImagePlus className={`w-6 h-6 ${isDraggingImage ? 'text-[#E3B86C]' : 'text-[#C59A47]'}`} />
                               </div>
                               <p className="text-xs font-bold text-[#0B1E14]">
-                                {isCompressingImage ? 'Optimizando imagen...' : 'Haz clic aquí para seleccionar una foto de tu equipo'}
+                                {isCompressingImage
+                                  ? 'Optimizando imagen...'
+                                  : isDraggingImage
+                                  ? '¡Suelta la foto aquí para añadirla!'
+                                  : 'Haz clic para subir una foto o arrástrala aquí'}
                               </p>
-                              <p className="text-[11px] text-[#5C6B62] mt-0.5">
-                                Formatos JPG, PNG, WEBP. Se optimizará automáticamente para carga ultra rápida.
+                              <p className="text-[11px] text-[#5C6B62] mt-1">
+                                Formatos JPG, PNG o WEBP. Se optimizará automáticamente.
                               </p>
                             </div>
                           )}
