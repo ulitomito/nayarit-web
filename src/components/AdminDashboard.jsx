@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useBlog, RichArticleContent } from '../context/BlogContext';
+import { RichTextEditor } from './RichTextEditor';
 import {
   FileText,
   MapPin,
@@ -966,42 +967,43 @@ export const AdminDashboard = () => {
                       </div>
                     )}
 
-                    {/* Bilingual Markdown Content Editor */}
+                    {/* Bilingual Visual Rich Text Editor */}
                     {articleLangTab === 'es' ? (
                       <div>
-                        <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center justify-between mb-2">
                           <label className="text-xs font-bold text-[#0B1E14]">
-                            Cuerpo del Artículo con Formato Markdown (Español)
+                            Cuerpo del Artículo (Español)
                           </label>
-                          <span className="text-[11px] text-[#5C6B62] font-mono">
-                            Soporta: ### Subtítulo | **Negrita** | - Lista | &gt; Cita
+                          <span className="text-[11px] text-[#5C6B62]">
+                            Selecciona texto para aplicar negritas, estilos de títulos o listas.
                           </span>
                         </div>
-                        <textarea
-                          rows={16}
+                        <RichTextEditor
                           value={articleFormData.contentEs}
-                          onChange={(e) => setArticleFormData({ ...articleFormData, contentEs: e.target.value })}
-                          placeholder="### ¿Qué es la Zona Restringida?&#10;&#10;El Artículo 27 Constitucional delimita..."
-                          className="w-full p-4 rounded-2xl bg-[#FAF7F2] border border-[#DFD5C4] text-xs font-mono text-[#0B1E14] leading-relaxed resize-y focus:bg-white focus:ring-1 focus:ring-[#C59A47]"
-                          required
+                          onChange={(newHtml) =>
+                            setArticleFormData((prev) => ({ ...prev, contentEs: newHtml }))
+                          }
+                          placeholder="Redacta el contenido del artículo aquí..."
+                          minHeight="380px"
                         />
                       </div>
                     ) : (
                       <div>
-                        <div className="flex items-center justify-between mb-1.5">
+                        <div className="flex items-center justify-between mb-2">
                           <label className="text-xs font-bold text-[#0B1E14]">
-                            Article Markdown Body (English)
+                            Article Body (English)
                           </label>
-                          <span className="text-[11px] text-[#5C6B62] font-mono">
-                            Supports: ### Heading | **Bold** | - Bullet | &gt; Quote
+                          <span className="text-[11px] text-[#5C6B62]">
+                            Highlight text to apply bold, headings, or lists.
                           </span>
                         </div>
-                        <textarea
-                          rows={16}
+                        <RichTextEditor
                           value={articleFormData.contentEn}
-                          onChange={(e) => setArticleFormData({ ...articleFormData, contentEn: e.target.value })}
-                          placeholder="### What is the Restricted Zone?&#10;&#10;Article 27 of the Mexican Constitution..."
-                          className="w-full p-4 rounded-2xl bg-[#FAF7F2] border border-[#DFD5C4] text-xs font-mono text-[#0B1E14] leading-relaxed resize-y focus:bg-white focus:ring-1 focus:ring-[#C59A47]"
+                          onChange={(newHtml) =>
+                            setArticleFormData((prev) => ({ ...prev, contentEn: newHtml }))
+                          }
+                          placeholder="Type the article content here..."
+                          minHeight="380px"
                         />
                       </div>
                     )}

@@ -22,103 +22,19 @@ export const formatInline = (text) => {
   });
 };
 
-// Rich article content renderer that formats headings, numbered lists, bullet lists, and paragraphs
+import { markdownToHtml } from '../components/RichTextEditor';
+
+// Rich article content renderer that formats headings, numbered lists, bullet lists, bold text and paragraphs
 export const RichArticleContent = ({ content }) => {
   if (!content) return null;
 
-  const rawBlocks = content.trim().split(/\n\s*\n/);
+  const html = markdownToHtml(content);
 
   return (
-    <div className="space-y-6 text-[#2C3531]">
-      {rawBlocks.map((block, bIdx) => {
-        const trimmed = block.trim();
-        if (!trimmed) return null;
-
-        // Heading 3: ### Heading
-        if (trimmed.startsWith('### ')) {
-          const headingText = trimmed.replace(/^###\s+/, '');
-          return (
-            <div key={bIdx} className="pt-6 pb-2 border-b border-[#DFD5C4]/60">
-              <h3 className="font-serif text-2xl sm:text-3xl font-bold text-[#0B1E14] tracking-tight flex items-center gap-3">
-                <span className="w-2 h-7 bg-[#C59A47] rounded-full shrink-0"></span>
-                <span>{headingText}</span>
-              </h3>
-            </div>
-          );
-        }
-
-        // Heading 2: ## Heading
-        if (trimmed.startsWith('## ')) {
-          const headingText = trimmed.replace(/^##\s+/, '');
-          return (
-            <div key={bIdx} className="pt-7 pb-2 border-b-2 border-[#C59A47]/40">
-              <h2 className="font-serif text-2.5xl sm:text-3xl font-bold text-[#0B1E14] tracking-tight flex items-center gap-3">
-                <span className="w-2.5 h-8 bg-[#153A26] rounded-full shrink-0"></span>
-                <span>{headingText}</span>
-              </h2>
-            </div>
-          );
-        }
-
-        // Check if block contains list items (numbered 1. or bullet *)
-        const lines = trimmed.split('\n').map((l) => l.trim()).filter(Boolean);
-        const isNumberedList = lines.every((line) => /^\d+\.\s+/.test(line));
-        const isBulletList = lines.every((line) => /^\*\s+/.test(line));
-
-        if (isNumberedList) {
-          return (
-            <div key={bIdx} className="space-y-3 my-5">
-              {lines.map((line, lIdx) => {
-                const match = line.match(/^(\d+)\.\s+(.*)$/);
-                const num = match ? match[1] : lIdx + 1;
-                const text = match ? match[2] : line;
-                return (
-                  <div
-                    key={lIdx}
-                    className="flex items-start gap-3.5 p-4 rounded-2xl bg-white border border-[#DFD5C4] shadow-sm hover:border-[#C59A47]/60 transition-colors"
-                  >
-                    <span className="w-7 h-7 rounded-xl bg-[#153A26] text-[#E3B86C] font-serif font-bold text-xs flex items-center justify-center shrink-0 mt-0.5 shadow-sm">
-                      {num}
-                    </span>
-                    <div className="text-sm sm:text-base text-[#2C3531] leading-relaxed">
-                      {formatInline(text)}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          );
-        }
-
-        if (isBulletList) {
-          return (
-            <div key={bIdx} className="space-y-2.5 my-4">
-              {lines.map((line, lIdx) => {
-                const text = line.replace(/^\*\s+/, '');
-                return (
-                  <div
-                    key={lIdx}
-                    className="flex items-start gap-3 p-3.5 rounded-xl bg-[#FAF7F2] border border-[#DFD5C4]/70"
-                  >
-                    <span className="w-2 h-2 rounded-full bg-[#C59A47] shrink-0 mt-2"></span>
-                    <div className="text-sm sm:text-base text-[#2C3531] leading-relaxed">
-                      {formatInline(text)}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          );
-        }
-
-        // Standard Paragraph
-        return (
-          <p key={bIdx} className="text-base sm:text-lg leading-relaxed text-[#2C3531]">
-            {formatInline(trimmed)}
-          </p>
-        );
-      })}
-    </div>
+    <div
+      className="article-rich-body space-y-4"
+      dangerouslySetInnerHTML={{ __html: html }}
+    />
   );
 };
 
