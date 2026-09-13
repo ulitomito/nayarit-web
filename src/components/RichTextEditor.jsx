@@ -21,8 +21,23 @@ import {
 export const markdownToHtml = (markdown = '') => {
   if (!markdown) return '';
 
-  // If already full HTML, return as is
-  if (/<(h[1-6]|p|ul|ol|li|blockquote|strong|b|em)[\s>]/i.test(markdown)) {
+  // Fix any legacy malformed headings containing embedded newlines/paragraphs
+  if (markdown.includes('</h3>') || markdown.includes('</h2>')) {
+    markdown = markdown.replace(/<(h[23])>([\s\S]*?)<\/\1>/gi, (match, tag, innerText) => {
+      if (innerText.includes('\n')) {
+        const lines = innerText.split('\n').map((l) => l.trim()).filter(Boolean);
+        if (lines.length > 1) {
+          const heading = `<${tag}>${lines[0]}</${tag}>`;
+          const rest = lines.slice(1).map((l) => `<p>${l}</p>`).join('');
+          return heading + rest;
+        }
+      }
+      return match;
+    });
+  }
+
+  // If already contains standard HTML block structure (and not raw markdown), return
+  if (/<(p|ul|ol|blockquote)[\s>]/i.test(markdown) && !markdown.includes('### ') && !markdown.includes('## ')) {
     return markdown;
   }
 
@@ -32,84 +47,86 @@ export const markdownToHtml = (markdown = '') => {
       .replace(/\*(.*?)\*/g, '<em>$1</em>');
   };
 
-  const blocks = markdown.trim().split(/\n\s*\n/);
+  const lines = markdown.split('\n');
+  let html = '';
+  let inList = null;
+  let currentParagraph = [];
 
-  return blocks
-    .map((block) => {
-      const trimmed = block.trim();
-      if (!trimmed) return '';
-
-      // Heading 3
-      if (trimmed.startsWith('### ')) {
-        const text = trimmed.replace(/^###\s+/, '');
-        return `<h3>${formatInline(text)}</h3>`;
+  const flushParagraph = () => {
+    if (currentParagraph.length > 0) {
+      const text = currentParagraph.join(' ').trim();
+      if (text) {
+        html += `<p>${formatInline(text)}</p>`;
       }
+      currentParagraph = [];
+    }
+  };
 
-      // Heading 2
-      if (trimmed.startsWith('## ')) {
-        const text = trimmed.replace(/^##\s+/, '');
-        return `<h2>${formatInline(text)}</h2>`;
+  const flushList = () => {
+    if (inList) {
+      html += `</${inList}>`;
+      inList = null;
+    }
+  };
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (!line) {
+      flushParagraph();
+      flushList();
+      continue;
+    }
+    if (line.startsWith('### ')) {
+      flushParagraph();
+      flushList();
+      html += `<h3>${formatInline(line.replace(/^###\s+/, ''))}</h3>`;
+      continue;
+    }
+    if (line.startsWith('## ')) {
+      flushParagraph();
+      flushList();
+      html += `<h2>${formatInline(line.replace(/^##\s+/, ''))}</h2>`;
+      continue;
+    }
+    if (line.startsWith('# ')) {
+      flushParagraph();
+      flushList();
+      html += `<h2>${formatInline(line.replace(/^#\s+/, ''))}</h2>`;
+      continue;
+    }
+    if (line.startsWith('> ')) {
+      flushParagraph();
+      flushList();
+      html += `<blockquote>${formatInline(line.replace(/^>\s+/, ''))}</blockquote>`;
+      continue;
+    }
+    if (line.startsWith('* ') || line.startsWith('- ')) {
+      flushParagraph();
+      if (inList !== 'ul') {
+        flushList();
+        html += '<ul>';
+        inList = 'ul';
       }
-
-      // Blockquote
-      if (trimmed.startsWith('> ')) {
-        const text = trimmed.replace(/^>\s+/, '');
-        return `<blockquote>${formatInline(text)}</blockquote>`;
+      html += `<li>${formatInline(line.replace(/^[\*\-]\s+/, ''))}</li>`;
+      continue;
+    }
+    const numMatch = line.match(/^\d+\.\s+(.*)$/);
+    if (numMatch) {
+      flushParagraph();
+      if (inList !== 'ol') {
+        flushList();
+        html += '<ol>';
+        inList = 'ol';
       }
-
-      // Lines processing for bullet and numbered lists
-      const lines = trimmed.split('\n').map((l) => l.trim()).filter(Boolean);
-      const hasBullets = lines.some((l) => l.startsWith('* ') || l.startsWith('- '));
-      const hasNumbered = lines.some((l) => /^\d+\.\s+/.test(l));
-
-      if (hasBullets) {
-        let html = '';
-        let inList = false;
-        lines.forEach((l) => {
-          if (l.startsWith('* ') || l.startsWith('- ')) {
-            if (!inList) {
-              html += '<ul>';
-              inList = true;
-            }
-            html += `<li>${formatInline(l.replace(/^[\*\-]\s+/, ''))}</li>`;
-          } else {
-            if (inList) {
-              html += '</ul>';
-              inList = false;
-            }
-            html += `<p>${formatInline(l)}</p>`;
-          }
-        });
-        if (inList) html += '</ul>';
-        return html;
-      }
-
-      if (hasNumbered) {
-        let html = '';
-        let inList = false;
-        lines.forEach((l) => {
-          const match = l.match(/^\d+\.\s+(.*)$/);
-          if (match) {
-            if (!inList) {
-              html += '<ol>';
-              inList = true;
-            }
-            html += `<li>${formatInline(match[1])}</li>`;
-          } else {
-            if (inList) {
-              html += '</ol>';
-              inList = false;
-            }
-            html += `<p>${formatInline(l)}</p>`;
-          }
-        });
-        if (inList) html += '</ol>';
-        return html;
-      }
-
-      return `<p>${formatInline(trimmed.replace(/\n/g, '<br/>'))}</p>`;
-    })
-    .join('');
+      html += `<li>${formatInline(numMatch[1])}</li>`;
+      continue;
+    }
+    flushList();
+    currentParagraph.push(line);
+  }
+  flushParagraph();
+  flushList();
+  return html;
 };
 
 export const RichTextEditor = ({
@@ -155,7 +172,8 @@ export const RichTextEditor = ({
 
   const handleFormatBlock = (tag) => {
     setSelectedFormat(tag);
-    executeCommand('formatBlock', tag);
+    const tagArg = tag.startsWith('<') ? tag : `<${tag}>`;
+    executeCommand('formatBlock', tagArg);
   };
 
   return (

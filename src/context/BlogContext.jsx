@@ -260,7 +260,9 @@ export const BlogProvider = ({ children }) => {
     }
   };
   const openArticle = (post) => {
-    setSelectedArticle(post);
+    if (!post) return;
+    const freshPost = posts.find((p) => p.id === post.id) || post;
+    setSelectedArticle(freshPost);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -288,36 +290,59 @@ export const BlogProvider = ({ children }) => {
   };
 
   const savePost = (postData) => {
-    if (editingPost) {
+    const targetId = postData.id || editingPost?.id;
+    let savedArticle = null;
+
+    if (targetId) {
       setPosts((prev) =>
-        prev.map((p) =>
-          p.id === editingPost.id
-            ? {
-                ...p,
-                ...postData,
-                title: { es: postData.titleEs, en: postData.titleEn || postData.titleEs },
-                excerpt: { es: postData.excerptEs, en: postData.excerptEn || postData.excerptEs },
-                content: { es: postData.contentEs, en: postData.contentEn || postData.contentEs },
-              }
-            : p
-        )
+        prev.map((p) => {
+          if (p.id === targetId) {
+            savedArticle = {
+              ...p,
+              category: postData.category || p.category,
+              readTime: postData.readTime || p.readTime,
+              image: postData.image || p.image,
+              author: postData.author || p.author,
+              title: {
+                es: postData.titleEs !== undefined ? postData.titleEs : (p.title?.es || p.title),
+                en: postData.titleEn !== undefined ? postData.titleEn : (p.title?.en || p.title?.es || p.title),
+              },
+              excerpt: {
+                es: postData.excerptEs !== undefined ? postData.excerptEs : (p.excerpt?.es || p.excerpt),
+                en: postData.excerptEn !== undefined ? postData.excerptEn : (p.excerpt?.en || p.excerpt?.es || p.excerpt),
+              },
+              content: {
+                es: postData.contentEs !== undefined ? postData.contentEs : (p.content?.es || p.content),
+                en: postData.contentEn !== undefined ? postData.contentEn : (p.content?.en || p.content?.es || p.content),
+              },
+            };
+            return savedArticle;
+          }
+          return p;
+        })
       );
     } else {
-      const newPost = {
+      savedArticle = {
         id: `post-${Date.now()}`,
-        category: postData.category,
+        category: postData.category || 'legal',
         date: new Date().toISOString().split('T')[0],
         readTime: postData.readTime || 4,
-        author: 'Equipo Legal Nayarit Real Estate',
+        author: postData.author || 'Equipo Legal Nayarit Real Estate',
         image: postData.image || 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80',
         title: { es: postData.titleEs, en: postData.titleEn || postData.titleEs },
         excerpt: { es: postData.excerptEs, en: postData.excerptEn || postData.excerptEs },
         content: { es: postData.contentEs, en: postData.contentEn || postData.contentEs },
       };
-      setPosts((prev) => [newPost, ...prev]);
+      setPosts((prev) => [savedArticle, ...prev]);
     }
+
+    if (savedArticle) {
+      setEditingPost(savedArticle);
+      setSelectedArticle((prev) => (prev && prev.id === savedArticle.id ? savedArticle : prev));
+    }
+
     setShowPostModal(false);
-    setEditingPost(null);
+    return savedArticle;
   };
 
   const getCategoryBadge = (category, t) => {

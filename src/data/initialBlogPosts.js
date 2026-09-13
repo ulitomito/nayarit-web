@@ -17,28 +17,34 @@ export const initialBlogPosts = [
     content: {
       es: `
 ### ¿Qué es la Zona Restringida?
+
 El Artículo 27 de la Constitución Mexicana establece una franja de protección nacional que comprende los primeros 50 kilómetros a lo largo de las costas del país. Dado que destinos emblemáticos como Bahía de Banderas, Punta de Mita, Sayulita, San Pancho, Compostela y San Blas se encuentran en este perímetro, la adquisición para personas no mexicanas se realiza mediante una figura jurídica bancaria llamada **Fideicomiso Inmobiliario**.
 
 ### ¿Cómo funciona el Fideicomiso?
+
 El Fideicomiso Inmobiliario es un instrumento legal seguro y regulado por la Ley de Instituciones de Crédito:
 * **El Banco actúa como Fiduciario:** Conserva la titularidad jurídica formal por cuenta y orden tuya.
 * **Tú eres el Fideicomisario (Beneficiario):** Gozas de derechos irrestrictos sobre el bien inmueble: puedes habitarlo, construirlo, rentarlo, remodelarlo, venderlo o transferirlo en cualquier momento.
 * **Herederos designados sin juicio testamentario:** Puedes designar beneficiarios sustitutos directamente en la escritura, lo que evita costosos juicios de sucesión en México.
 
 ### Duración y Certeza
+
 El fideicomiso se constituye por un plazo de 50 años y es prorrogable a perpetuidad mediante un trámite administrativo rutinario. En **Nayarit Real Estate** gestionamos el permiso oficial ante la Secretaría de Relaciones Exteriores (SRE), la auditoría notarial de antecedentes y la protocolización ante Notario Público.
       `,
       en: `
 ### Understanding the Restricted Zone
+
 Article 27 of the Mexican Constitution establishes a protected perimeter spanning 50 kilometers (approx. 31 miles) along all coastlines. Because prime Nayarit destinations such as Banderas Bay, Punta de Mita, Sayulita, San Pancho, Compostela, and San Blas lie within this zone, property acquisitions by international buyers are executed via a **Real Estate Fideicomiso (Bank Trust)**.
 
 ### How the Fideicomiso Works
+
 The trust is an ironclad legal vehicle regulated under Mexican federal banking statutes:
 * **The Mexican Bank acts as Trustee (Fiduciario):** Holds legal title exclusively on your behalf.
 * **You are the Trust Beneficiary (Fideicomisario):** You enjoy 100% of ownership privileges: live in the home, rent it, remodel it, build, or resell at current market value.
 * **Seamless Estate Planning:** You name substitute beneficiaries directly within the deed, avoiding complex probate proceedings.
 
 ### Renewal and Security
+
 Trusts are granted for 50-year renewable terms in perpetuity. At **Nayarit Real Estate**, our legal attorneys coordinate foreign ministry (SRE) permits, title due diligence, and final notary deed protocolization.
       `
     }

@@ -9,6 +9,9 @@ export const ArticleReaderModal = () => {
 
   if (!selectedArticle) return null;
 
+  // Always resolve the freshest version from posts by ID
+  const activeArticle = posts.find((p) => p.id === selectedArticle.id) || selectedArticle;
+
   const handleBackToBlog = () => {
     setSelectedArticle(null);
     setCurrentView('blog');
@@ -18,7 +21,7 @@ export const ArticleReaderModal = () => {
 
   // Up to 30 posts in history
   const historyPosts = posts.slice(0, 30);
-  const currentIndex = historyPosts.findIndex((p) => p.id === selectedArticle.id);
+  const currentIndex = historyPosts.findIndex((p) => p.id === activeArticle.id);
 
   // Previous and Next posts in history
   const prevPost = currentIndex > 0 ? historyPosts[currentIndex - 1] : null;
@@ -51,23 +54,23 @@ export const ArticleReaderModal = () => {
           <article className="lg:col-span-7 xl:col-span-7 w-full max-w-4xl mx-auto">
             {/* Meta badges */}
             <div className="flex flex-wrap items-center gap-2.5 mb-4">
-              <span className={`px-3 py-1 rounded-full text-xs font-bold shadow-sm ${getCategoryBadge(selectedArticle.category, t).color}`}>
-                {getCategoryBadge(selectedArticle.category, t).label}
+              <span className={`px-3 py-1 rounded-full text-xs font-bold shadow-sm ${getCategoryBadge(activeArticle.category, t).color}`}>
+                {getCategoryBadge(activeArticle.category, t).label}
               </span>
               <span className="text-xs font-semibold text-[#5C6B62] flex items-center gap-1">
                 <Clock className="w-3.5 h-3.5 text-[#C59A47]" />
-                {selectedArticle.readTime} {t.blog.minRead}
+                {activeArticle.readTime} {t.blog.minRead}
               </span>
               <span className="text-xs text-[#5C6B62]">•</span>
               <span className="text-xs font-semibold text-[#5C6B62] flex items-center gap-1">
                 <Calendar className="w-3.5 h-3.5 text-[#C59A47]" />
-                {selectedArticle.date}
+                {activeArticle.date}
               </span>
             </div>
 
             {/* Article Headline */}
             <h1 className="font-serif text-3xl sm:text-4xl md:text-5xl font-bold text-[#0B1E14] tracking-tight leading-[1.15] mb-6">
-              {selectedArticle.title[lang] || selectedArticle.title.es}
+              {activeArticle.title[lang] || activeArticle.title.es || activeArticle.title}
             </h1>
 
             {/* Author bar */}
@@ -77,7 +80,7 @@ export const ArticleReaderModal = () => {
               </div>
               <div>
                 <p className="text-xs font-bold text-[#0B1E14]">
-                  {selectedArticle.author}
+                  {activeArticle.author}
                 </p>
                 <p className="text-[11px] text-[#5C6B62]">
                   {lang === 'es' ? 'Revisión Notarial y Seguridad Jurídica Inmobiliaria' : 'Notarial Review & Real Estate Legal Security'}
@@ -88,8 +91,8 @@ export const ArticleReaderModal = () => {
             {/* Large Cover Image */}
             <div className="rounded-3xl overflow-hidden shadow-xl mb-8 h-72 sm:h-96 md:h-[440px] w-full">
               <img
-                src={selectedArticle.image}
-                alt={selectedArticle.title[lang] || selectedArticle.title.es}
+                src={activeArticle.image}
+                alt={activeArticle.title[lang] || activeArticle.title.es || activeArticle.title}
                 className="w-full h-full object-cover"
               />
             </div>
@@ -97,14 +100,14 @@ export const ArticleReaderModal = () => {
             {/* Highlighted Excerpt Quote */}
             <div className="bg-white p-5 sm:p-6 rounded-3xl border-l-4 border-[#C59A47] shadow-sm mb-8">
               <p className="text-base sm:text-lg text-[#153A26] font-serif italic font-medium leading-relaxed">
-                "{selectedArticle.excerpt[lang] || selectedArticle.excerpt.es}"
+                "{activeArticle.excerpt[lang] || activeArticle.excerpt.es || activeArticle.excerpt}"
               </p>
             </div>
 
             {/* Rich Formatted Markdown Content */}
             <div className="bg-white p-6 sm:p-10 rounded-3xl border border-[#DFD5C4] shadow-luxury mb-10">
               <RichArticleContent
-                content={selectedArticle.content[lang] || selectedArticle.content.es}
+                content={activeArticle.content[lang] || activeArticle.content.es || activeArticle.content}
               />
             </div>
 
@@ -185,7 +188,7 @@ export const ArticleReaderModal = () => {
               {/* Scrollable list of max 30 posts */}
               <div className="space-y-2.5 max-h-[calc(100vh-14rem)] overflow-y-auto pr-1">
                 {historyPosts.map((post) => {
-                  const isCurrent = post.id === selectedArticle.id;
+                  const isCurrent = post.id === activeArticle.id;
                   return (
                     <div
                       key={post.id}

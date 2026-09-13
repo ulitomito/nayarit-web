@@ -120,6 +120,7 @@ export const AdminDashboard = () => {
     setIsEditMode(false); // First show the article in full reading view!
     setArticleLangTab('es');
     setArticleFormData({
+      id: post.id,
       titleEs: post.title?.es || post.title || '',
       titleEn: post.title?.en || '',
       category: post.category || 'legal',
@@ -150,6 +151,7 @@ export const AdminDashboard = () => {
     setIsEditMode(true); // For a brand new article, start directly in edit mode
     setArticleLangTab('es');
     setArticleFormData({
+      id: null,
       titleEs: '',
       titleEn: '',
       category: 'legal',
@@ -164,18 +166,28 @@ export const AdminDashboard = () => {
 
   const handleSaveArticle = (e) => {
     if (e) e.preventDefault();
-    savePost(articleFormData);
-
-    const updated = {
-      ...(viewingPost || {}),
-      category: articleFormData.category,
-      readTime: articleFormData.readTime,
-      image: articleFormData.image,
-      title: { es: articleFormData.titleEs, en: articleFormData.titleEn || articleFormData.titleEs },
-      excerpt: { es: articleFormData.excerptEs, en: articleFormData.excerptEn || articleFormData.excerptEs },
-      content: { es: articleFormData.contentEs, en: articleFormData.contentEn || articleFormData.contentEs }
+    const payload = {
+      ...articleFormData,
+      id: viewingPost?.id || articleFormData.id,
     };
-    setViewingPost(updated);
+    const saved = savePost(payload);
+
+    if (saved) {
+      setViewingPost(saved);
+      setEditingPost(saved);
+      setArticleFormData({
+        id: saved.id,
+        titleEs: saved.title?.es || saved.title || '',
+        titleEn: saved.title?.en || '',
+        category: saved.category || 'legal',
+        readTime: saved.readTime || 4,
+        image: saved.image || '',
+        excerptEs: saved.excerpt?.es || saved.excerpt || '',
+        excerptEn: saved.excerpt?.en || '',
+        contentEs: saved.content?.es || saved.content || '',
+        contentEn: saved.content?.en || '',
+      });
+    }
     setIsEditMode(false); // Return to reading mode so user can see their changes
     setArticleSavedToast(true);
     setTimeout(() => setArticleSavedToast(false), 3500);
