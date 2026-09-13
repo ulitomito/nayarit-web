@@ -100,7 +100,7 @@ export const initialContactInfo = {
 };
 
 export const BlogProvider = ({ children }) => {
-  // Saved articles in localStorage
+  // Saved articles with fallback to localStorage and backend fetch
   const [posts, setPosts] = useState(() => {
     const saved = localStorage.getItem('nayarit_blog_posts');
     if (saved) {
@@ -112,6 +112,39 @@ export const BlogProvider = ({ children }) => {
     }
     return initialBlogPosts;
   });
+
+  // Fetch posts from backend API / database on mount for all visitors (including incognito)
+  const [isLoadingPosts, setIsLoadingPosts] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+    const fetchPostsFromApi = async () => {
+      try {
+        setIsLoadingPosts(true);
+        const res = await fetch('/api/posts.php?t=' + Date.now());
+        if (res.ok) {
+          const serverPosts = await res.json();
+          if (Array.isArray(serverPosts) && serverPosts.length > 0 && isMounted) {
+            setPosts(serverPosts);
+            try {
+              localStorage.setItem('nayarit_blog_posts', JSON.stringify(serverPosts));
+            } catch (storageErr) {
+              console.warn('Could not cache server posts to localStorage', storageErr);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('API /api/posts.php unavailable, using local cache/fallbacks:', err);
+      } finally {
+        if (isMounted) setIsLoadingPosts(false);
+      }
+    };
+
+    fetchPostsFromApi();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Destinations data in state with persistence
   const [destinations, setDestinations] = useState(() => {
@@ -351,10 +384,28 @@ export const BlogProvider = ({ children }) => {
 
   const deletePost = (postId) => {
     if (window.confirm('¿Estás seguro de que deseas eliminar este artículo?')) {
-      setPosts((prev) => prev.filter((p) => p.id !== postId));
+      setPosts((prev) => {
+        const next = prev.filter((p) => p.id !== postId);
+        try {
+          localStorage.setItem('nayarit_blog_posts', JSON.stringify(next));
+        } catch (e) {}
+        return next;
+      });
       if (selectedArticle && selectedArticle.id === postId) {
         setSelectedArticle(null);
       }
+
+      // Persist deletion to backend database / server
+      fetch('/api/posts.php?id=' + encodeURIComponent(postId), {
+        method: 'DELETE',
+      })
+        .then((res) => res.json())
+        .then((data) => {
+          console.log('Post deleted from server/database:', data);
+        })
+        .catch((err) => {
+          console.error('Error deleting post from server:', err);
+        });
     }
   };
 
@@ -426,6 +477,26 @@ export const BlogProvider = ({ children }) => {
     if (savedArticle) {
       setEditingPost(savedArticle);
       setSelectedArticle((prev) => (prev && prev.id === savedArticle.id ? savedArticle : prev));
+
+      // Asynchronously send to /api/posts.php so it is stored permanently in MySQL DB & server
+      fetch('/api/posts.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(savedArticle),
+      })
+        .then((res) => res.json())
+        .then((resData) => {
+          console.log('Post saved to database and server:', resData);
+          if (resData?.post) {
+            // Update with any canonical server fields
+            setPosts((curr) =>
+              curr.map((p) => (p.id === resData.post.id ? { ...p, ...resData.post } : p))
+            );
+          }
+        })
+        .catch((err) => {
+          console.error('Error saving post to server database:', err);
+        });
     }
 
     setShowPostModal(false);
