@@ -6,9 +6,19 @@ on:
       - test
   workflow_dispatch:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-test
+  cancel-in-progress: true
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    environment:
+      name: test
+      url: https://ulitest.mausalinas.com
 
     steps:
       - name: 📥 Checkout repository
@@ -29,7 +39,9 @@ jobs:
       - name: 🚀 Deploy via FTP to Hostinger (Test Environment)
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
-          server: ${{ secrets.FTP_SERVER_TEST || secrets.FTP_SERVER }}
+          # Both accounts use the same Hostinger FTP endpoint. The dedicated
+          # test username/password restrict this job to the test document root.
+          server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME_TEST }}
           password: ${{ secrets.FTP_PASSWORD_TEST }}
           local-dir: ./dist/

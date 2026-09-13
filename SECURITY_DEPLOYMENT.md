@@ -2,6 +2,22 @@
 
 Este documento no debe contener contraseñas, hashes reales ni nombres completos de cuentas.
 
+## Entornos
+
+| Entorno | Rama | Dominio | Credenciales de despliegue |
+| --- | --- | --- | --- |
+| Producción anterior | `main` | `uli.mausalinas.com` | `FTP_USERNAME` y `FTP_PASSWORD` |
+| Nueva versión en pruebas | `test` | `ulitest.mausalinas.com` | `FTP_USERNAME_TEST` y `FTP_PASSWORD_TEST` |
+
+Los dos usuarios FTP se conectan mediante `FTP_SERVER`, pero cada uno debe estar limitado
+en Hostinger a su propio directorio raíz. Nunca se debe usar una credencial de producción
+como respaldo automático de una credencial de pruebas.
+
+La base `UliNRE` se administra actualmente desde el sitio de producción en hPanel, aunque
+la API nueva está desplegada en `ulitest`. Antes de cargar datos reales o promover `test`
+a `main`, decidir expresamente si se conservará esa base como producción. Para pruebas con
+datos destructivos o no publicados se debe crear una base y un usuario MySQL exclusivos.
+
 ## Orden obligatorio
 
 1. Crear una copia de seguridad de la base de datos y de `public_html` desde Hostinger.
@@ -52,3 +68,5 @@ si la base de datos no está disponible.
 - Activar 2FA en Hostinger y GitHub y revisar sesiones/dispositivos activos.
 - Reescribir el historial público sólo después de una copia de seguridad y una ventana
   coordinada; rotar secretos es obligatorio aunque el historial se limpie.
+- Configurar en GitHub los entornos `production` y `test`; limitar `production` a `main` y,
+  si el plan lo permite, exigir aprobación manual antes de cada despliegue productivo.
