@@ -21,8 +21,56 @@ import {
   Calendar,
   Layers,
   Sparkles,
-  ShieldCheck
+  ShieldCheck,
+  ChevronDown,
+  AlertCircle
 } from 'lucide-react';
+
+const COUNTRY_CODES = [
+  { id: 'MX', dialCode: '52', flag: '🇲🇽', label: 'México (+52)' },
+  { id: 'US', dialCode: '1', flag: '🇺🇸', label: 'Estados Unidos (+1)' },
+  { id: 'CA', dialCode: '1', flag: '🇨🇦', label: 'Canadá (+1)' },
+  { id: 'ES', dialCode: '34', flag: '🇪🇸', label: 'España (+34)' },
+  { id: 'CO', dialCode: '57', flag: '🇨🇴', label: 'Colombia (+57)' },
+  { id: 'AR', dialCode: '54', flag: '🇦🇷', label: 'Argentina (+54)' },
+  { id: 'CL', dialCode: '56', flag: '🇨🇱', label: 'Chile (+56)' },
+  { id: 'GB', dialCode: '44', flag: '🇬🇧', label: 'Reino Unido (+44)' },
+  { id: 'FR', dialCode: '33', flag: '🇫🇷', label: 'Francia (+33)' },
+  { id: 'DE', dialCode: '49', flag: '🇩🇪', label: 'Alemania (+49)' },
+  { id: 'IT', dialCode: '39', flag: '🇮🇹', label: 'Italia (+39)' }
+];
+
+const parseInitialPhone = (fullPhone = '') => {
+  const digits = String(fullPhone).replace(/\D/g, '');
+  if (digits.startsWith('52') && digits.length >= 12) {
+    return { countryId: 'MX', phone10: digits.slice(2, 12) };
+  }
+  if (digits.startsWith('34') && digits.length >= 11) {
+    return { countryId: 'ES', phone10: digits.slice(2, 11) };
+  }
+  if (digits.startsWith('57') && digits.length >= 12) {
+    return { countryId: 'CO', phone10: digits.slice(2, 12) };
+  }
+  if (digits.startsWith('1') && digits.length >= 11) {
+    return { countryId: 'US', phone10: digits.slice(1, 11) };
+  }
+  if (digits.length >= 10) {
+    return { countryId: 'MX', phone10: digits.slice(-10) };
+  }
+  return { countryId: 'MX', phone10: digits };
+};
+
+const formatHumanPhone = (dialCode, digits10) => {
+  if (!digits10) return '';
+  const clean = digits10.replace(/\D/g, '');
+  if (clean.length < 10) {
+    return `+${dialCode} ${clean}`;
+  }
+  const part1 = clean.slice(0, 3);
+  const part2 = clean.slice(3, 6);
+  const part3 = clean.slice(6, 10);
+  return `+${dialCode} (${part1}) ${part2}-${part3}`;
+};
 
 export const AdminDashboard = () => {
   const { lang, t } = useLanguage();
@@ -50,17 +98,89 @@ export const AdminDashboard = () => {
   const [contactForm, setContactForm] = useState(contactInfo);
   const [contactSaved, setContactSaved] = useState(false);
 
+  // Phone input states: country selector + exact 10 digits
+  const initialPhoneData = parseInitialPhone(contactInfo?.whatsappPhone || '523111187229');
+  const [selectedCountryId, setSelectedCountryId] = useState(initialPhoneData.countryId);
+  const [phoneDigits, setPhoneDigits] = useState(initialPhoneData.phone10);
+  const [phoneError, setPhoneError] = useState('');
+
+  const currentCountry = COUNTRY_CODES.find((c) => c.id === selectedCountryId) || COUNTRY_CODES[0];
+
+  const handlePhoneKeyDown = (e) => {
+    // Disallow 'e', 'E', '+', '-', '.', ',', and spaces
+    if (['e', 'E', '+', '-', '.', ',', ' '].includes(e.key)) {
+      e.preventDefault();
+      return;
+    }
+    // Allow navigation and editing control keys
+    const allowedKeys = [
+      'Backspace', 'Delete', 'Tab', 'Enter', 'Escape',
+      'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown',
+      'Home', 'End'
+    ];
+    if (allowedKeys.includes(e.key)) {
+      return;
+    }
+    // Allow keyboard shortcuts (Ctrl/Cmd + C, V, A, X, Z)
+    if (e.ctrlKey || e.metaKey) {
+      return;
+    }
+    // Disallow any non-digit character
+    if (!/^[0-9]$/.test(e.key)) {
+      e.preventDefault();
+      return;
+    }
+    // Limit strictly to 10 digits unless text is highlighted to be replaced
+    if (phoneDigits.length >= 10 && e.target.selectionStart === e.target.selectionEnd) {
+      e.preventDefault();
+      return;
+    }
+  };
+
+  const handlePhoneChange = (e) => {
+    const onlyDigits = e.target.value.replace(/\D/g, '').slice(0, 10);
+    setPhoneDigits(onlyDigits);
+    if (onlyDigits.length === 10) {
+      setPhoneError('');
+    }
+  };
+
+  const handlePhonePaste = (e) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData('text') || '';
+    const onlyDigits = pasted.replace(/\D/g, '').slice(0, 10);
+    setPhoneDigits(onlyDigits);
+    if (onlyDigits.length === 10) {
+      setPhoneError('');
+    }
+  };
+
+  const handleSaveContact = (e) => {
+    e.preventDefault();
+    if (phoneDigits.length < 10) {
+      setPhoneError(`Debes ingresar exactamente 10 dígitos (actualmente tienes ${phoneDigits.length}).`);
+      return;
+    }
+    setPhoneError('');
+
+    const fullWhatsappPhone = `${currentCountry.dialCode}${phoneDigits}`;
+    const autoPhoneDisplay = formatHumanPhone(currentCountry.dialCode, phoneDigits);
+
+    const updatedData = {
+      ...contactForm,
+      whatsappPhone: fullWhatsappPhone,
+      phoneDisplay: autoPhoneDisplay
+    };
+
+    updateContactInfo(updatedData);
+    setContactSaved(true);
+    setTimeout(() => setContactSaved(false), 3000);
+  };
+
   // Destination edit state
   const [editingDestId, setEditingDestId] = useState(null);
   const [destForm, setDestForm] = useState({ image: '', tagEs: '', tagEn: '' });
   const [destSaved, setDestSaved] = useState(false);
-
-  const handleSaveContact = (e) => {
-    e.preventDefault();
-    updateContactInfo(contactForm);
-    setContactSaved(true);
-    setTimeout(() => setContactSaved(false), 3000);
-  };
 
   const handleStartEditDest = (dest) => {
     setEditingDestId(dest.id);
@@ -535,35 +655,94 @@ export const AdminDashboard = () => {
               )}
 
               <form onSubmit={handleSaveContact} className="space-y-4">
+                {/* Selector de código de país con bandera + 10 dígitos numéricos estrictos */}
                 <div>
-                  <label className="block text-xs font-bold text-[#0B1E14] mb-1">
-                    Número de WhatsApp (con código de país, sin signos)
-                  </label>
-                  <input
-                    type="text"
-                    value={contactForm.whatsappPhone}
-                    onChange={(e) => setContactForm({ ...contactForm, whatsappPhone: e.target.value })}
-                    placeholder="Ej. 523111187229"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF7F2] border border-[#DFD5C4] text-xs font-mono"
-                    required
-                  />
-                  <span className="text-[11px] text-[#5C6B62] mt-1 block">
-                    Controla el botón flotante de WhatsApp y los enlaces directos de asesoría notarial.
-                  </span>
-                </div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-bold text-[#0B1E14]">
+                      Número de WhatsApp & Teléfono
+                    </label>
+                    <div className="flex items-center gap-1.5">
+                      <span
+                        className={`text-[11px] font-mono font-bold px-2 py-0.5 rounded-full ${
+                          phoneDigits.length === 10
+                            ? 'bg-emerald-100 text-emerald-800'
+                            : 'bg-amber-100 text-amber-800'
+                        }`}
+                      >
+                        {phoneDigits.length} / 10 dígitos
+                      </span>
+                      {phoneDigits.length === 10 && (
+                        <span className="text-xs font-bold text-emerald-600">✓ Listo</span>
+                      )}
+                    </div>
+                  </div>
 
-                <div>
-                  <label className="block text-xs font-bold text-[#0B1E14] mb-1">
-                    Teléfono en Pantalla (Formato para humanos)
-                  </label>
-                  <input
-                    type="text"
-                    value={contactForm.phoneDisplay}
-                    onChange={(e) => setContactForm({ ...contactForm, phoneDisplay: e.target.value })}
-                    placeholder="Ej. +52 (311) 118-7229"
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-[#FAF7F2] border border-[#DFD5C4] text-xs"
-                    required
-                  />
+                  <div className="flex rounded-2xl border border-[#DFD5C4] overflow-hidden bg-white shadow-xs focus-within:ring-2 focus-within:ring-[#C59A47] focus-within:border-[#C59A47] transition-all">
+                    {/* Selector de país con bandera */}
+                    <div className="relative border-r border-[#DFD5C4] bg-[#FAF7F2] shrink-0">
+                      <select
+                        value={selectedCountryId}
+                        onChange={(e) => setSelectedCountryId(e.target.value)}
+                        className="h-full py-3 pl-3.5 pr-8 bg-transparent text-xs font-bold text-[#0B1E14] cursor-pointer appearance-none outline-none"
+                      >
+                        {COUNTRY_CODES.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.flag} +{c.dialCode} ({c.label.split(' ')[0]})
+                          </option>
+                        ))}
+                      </select>
+                      <div className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-[#5C6B62]">
+                        <ChevronDown className="w-3.5 h-3.5" />
+                      </div>
+                    </div>
+
+                    {/* Input de 10 dígitos estrictos: no 'e', no letras, solo números */}
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={phoneDigits}
+                      onKeyDown={handlePhoneKeyDown}
+                      onChange={handlePhoneChange}
+                      onPaste={handlePhonePaste}
+                      placeholder="3111187227"
+                      maxLength={10}
+                      className="flex-1 px-4 py-3 text-sm font-mono tracking-wider text-[#0B1E14] bg-white outline-none placeholder:text-stone-300"
+                      required
+                    />
+                  </div>
+
+                  {phoneError ? (
+                    <p className="text-xs font-bold text-red-600 mt-2 flex items-center gap-1.5">
+                      <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                      <span>{phoneError}</span>
+                    </p>
+                  ) : (
+                    <p className="text-[11px] text-[#5C6B62] mt-1.5">
+                      {phoneDigits.length < 10
+                        ? `Ingresa los 10 dígitos locales de tu línea telefónica (faltan ${10 - phoneDigits.length}).`
+                        : 'Número completo validado con éxito.'}
+                    </p>
+                  )}
+
+                  {/* Vista Previa Inteligente en Segundo Plano */}
+                  <div className="mt-3 p-3.5 rounded-2xl bg-[#FAF7F2] border border-[#DFD5C4]/70 space-y-2 text-xs">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] text-[#5C6B62] font-semibold">
+                        Formato para visitantes en la web:
+                      </span>
+                      <span className="font-bold text-[#153A26] font-mono">
+                        {formatHumanPhone(currentCountry.dialCode, phoneDigits) || '+52 (311) 118-7229'}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between border-t border-[#DFD5C4]/50 pt-2">
+                      <span className="text-[11px] text-[#5C6B62] font-semibold">
+                        Enlace directo de WhatsApp:
+                      </span>
+                      <span className="font-bold text-[#0B1E14] font-mono text-[11px]">
+                        +{currentCountry.dialCode}{phoneDigits || '...'}
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
                 <div>
@@ -609,7 +788,12 @@ export const AdminDashboard = () => {
                 <div className="pt-4 border-t border-[#DFD5C4] flex justify-end">
                   <button
                     type="submit"
-                    className="px-6 py-2.5 rounded-xl bg-[#153A26] hover:bg-[#0B1E14] text-white text-xs font-bold transition-colors flex items-center gap-2 shadow-sm cursor-pointer"
+                    disabled={phoneDigits.length < 10}
+                    className={`px-6 py-2.5 rounded-xl text-white text-xs font-bold transition-all flex items-center gap-2 shadow-sm ${
+                      phoneDigits.length < 10
+                        ? 'bg-[#153A26]/50 cursor-not-allowed opacity-60'
+                        : 'bg-[#153A26] hover:bg-[#0B1E14] cursor-pointer'
+                    }`}
                   >
                     <Save className="w-3.5 h-3.5 text-[#C59A47]" />
                     <span>Guardar Cambios de Contacto</span>
