@@ -299,6 +299,7 @@ export const BlogProvider = ({ children }) => {
           if (p.id === targetId) {
             savedArticle = {
               ...p,
+              status: postData.status !== undefined ? postData.status : (p.status || 'published'),
               category: postData.category || p.category,
               readTime: postData.readTime || p.readTime,
               image: postData.image || p.image,
@@ -324,6 +325,7 @@ export const BlogProvider = ({ children }) => {
     } else {
       savedArticle = {
         id: `post-${Date.now()}`,
+        status: postData.status || 'published',
         category: postData.category || 'legal',
         date: new Date().toISOString().split('T')[0],
         readTime: postData.readTime || 4,

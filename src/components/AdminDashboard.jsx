@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useBlog, RichArticleContent } from '../context/BlogContext';
 import { RichTextEditor } from './RichTextEditor';
@@ -25,8 +25,60 @@ import {
   ShieldCheck,
   ChevronDown,
   AlertCircle,
-  ArrowLeft
+  ArrowLeft,
+  Upload,
+  ImagePlus,
+  AlertTriangle,
+  CheckCircle2,
+  Info,
+  X
 } from 'lucide-react';
+
+/**
+ * Automatically compresses user-uploaded images via HTML5 Canvas
+ * so high-resolution mobile photos don't overflow localStorage or slow down rendering.
+ */
+const compressImageFile = (file) => {
+  return new Promise((resolve, reject) => {
+    if (!file.type.startsWith('image/')) {
+      reject(new Error('El archivo seleccionado no es una imagen válida'));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const maxWidth = 1600;
+        const maxHeight = 1200;
+        let { width, height } = img;
+
+        if (width > maxWidth || height > maxHeight) {
+          if (width / height > maxWidth / maxHeight) {
+            height = Math.round((height * maxWidth) / width);
+            width = maxWidth;
+          } else {
+            width = Math.round((width * maxHeight) / height);
+            height = maxHeight;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Convert to high efficiency JPEG
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        resolve(dataUrl);
+      };
+      img.onerror = () => reject(new Error('No se pudo decodificar la imagen'));
+      img.src = e.target.result;
+    };
+    reader.onerror = () => reject(new Error('Error al leer el archivo'));
+    reader.readAsDataURL(file);
+  });
+};
 
 const COUNTRY_CODES = [
   { id: 'MX', dialCode: '52', flag: '🇲🇽', label: 'México (+52)' },
@@ -96,6 +148,17 @@ export const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('posts'); // 'posts' | 'destinations' | 'contact'
   const [postSearch, setPostSearch] = useState('');
   const [postCategoryFilter, setPostCategoryFilter] = useState('all');
+  const [postStatusFilter, setPostStatusFilter] = useState('all'); // 'all' | 'published' | 'draft'
+
+  // Cover image upload / compression state
+  const fileInputRef = useRef(null);
+  const [imageInputMode, setImageInputMode] = useState('upload'); // 'upload' | 'url'
+  const [isCompressingImage, setIsCompressingImage] = useState(false);
+  const [imageUploadError, setImageUploadError] = useState('');
+
+  // English completeness modal & notifications
+  const [englishWarningModal, setEnglishWarningModal] = useState(false);
+  const [saveSuccessMessage, setSaveSuccessMessage] = useState('');
 
   // Article inspection and dedicated editing state
   const [viewingPost, setViewingPost] = useState(null); // When set, renders the dedicated article screen instead of table
@@ -103,6 +166,8 @@ export const AdminDashboard = () => {
   const [articleLangTab, setArticleLangTab] = useState('es'); // 'es' | 'en'
   const [articleSavedToast, setArticleSavedToast] = useState(false);
   const [articleFormData, setArticleFormData] = useState({
+    id: null,
+    status: 'published',
     titleEs: '',
     titleEn: '',
     category: 'legal',
@@ -114,13 +179,23 @@ export const AdminDashboard = () => {
     contentEn: ''
   });
 
+  // Check if English translation is sufficiently filled (title + content body)
+  const checkEnglishCompleteness = (data) => {
+    const title = (data?.titleEn || '').trim();
+    const rawContent = (data?.contentEn || '').replace(/<[^>]*>/g, '').trim();
+    return Boolean(title.length > 0 && rawContent.length > 10);
+  };
+
   const handleOpenArticleDetail = (post) => {
     setEditingPost(post);
     setViewingPost(post);
     setIsEditMode(false); // First show the article in full reading view!
     setArticleLangTab('es');
+    setImageInputMode(post.image && post.image.startsWith('http') ? 'url' : 'upload');
+    setImageUploadError('');
     setArticleFormData({
       id: post.id,
+      status: post.status || 'published',
       titleEs: post.title?.es || post.title || '',
       titleEn: post.title?.en || '',
       category: post.category || 'legal',
@@ -138,10 +213,11 @@ export const AdminDashboard = () => {
     const newPlaceholder = {
       isNew: true,
       id: null,
+      status: 'draft',
       title: { es: 'Nuevo Artículo', en: 'New Article' },
       category: 'legal',
       readTime: 4,
-      image: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80',
+      image: '',
       excerpt: { es: '', en: '' },
       content: { es: '', en: '' },
       date: new Date().toISOString().split('T')[0],
@@ -150,13 +226,16 @@ export const AdminDashboard = () => {
     setViewingPost(newPlaceholder);
     setIsEditMode(true); // For a brand new article, start directly in edit mode
     setArticleLangTab('es');
+    setImageInputMode('upload');
+    setImageUploadError('');
     setArticleFormData({
       id: null,
+      status: 'draft',
       titleEs: '',
       titleEn: '',
       category: 'legal',
       readTime: 4,
-      image: 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80',
+      image: '',
       excerptEs: '',
       excerptEn: '',
       contentEs: '',
@@ -164,11 +243,31 @@ export const AdminDashboard = () => {
     });
   };
 
-  const handleSaveArticle = (e) => {
+  // Upload image handler with automatic resizing & compression
+  const handleImageUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setImageUploadError('');
+    setIsCompressingImage(true);
+    try {
+      const optimizedDataUrl = await compressImageFile(file);
+      setArticleFormData((prev) => ({ ...prev, image: optimizedDataUrl }));
+    } catch (err) {
+      console.error(err);
+      setImageUploadError(err.message || 'Error al procesar la imagen');
+    } finally {
+      setIsCompressingImage(false);
+      if (e.target) e.target.value = '';
+    }
+  };
+
+  // Save as draft (always allowed, does not require English)
+  const handleSaveDraft = (e) => {
     if (e) e.preventDefault();
     const payload = {
       ...articleFormData,
       id: viewingPost?.id || articleFormData.id,
+      status: 'draft',
     };
     const saved = savePost(payload);
 
@@ -177,6 +276,7 @@ export const AdminDashboard = () => {
       setEditingPost(saved);
       setArticleFormData({
         id: saved.id,
+        status: 'draft',
         titleEs: saved.title?.es || saved.title || '',
         titleEn: saved.title?.en || '',
         category: saved.category || 'legal',
@@ -188,9 +288,54 @@ export const AdminDashboard = () => {
         contentEn: saved.content?.en || '',
       });
     }
-    setIsEditMode(false); // Return to reading mode so user can see their changes
+    setEnglishWarningModal(false);
+    setIsEditMode(false); // Return to reading mode
+    setSaveSuccessMessage('Guardado como Borrador. Recuerda completar la versión en inglés para poder publicarlo.');
     setArticleSavedToast(true);
-    setTimeout(() => setArticleSavedToast(false), 3500);
+    setTimeout(() => setArticleSavedToast(false), 4000);
+  };
+
+  // Save and publish (requires English translation)
+  const handleSaveAndPublish = (e) => {
+    if (e) e.preventDefault();
+
+    // Check English completeness
+    const hasEnglish = checkEnglishCompleteness(articleFormData);
+    if (!hasEnglish) {
+      // Prompt user with modal and prevent publishing
+      setEnglishWarningModal(true);
+      return;
+    }
+
+    const payload = {
+      ...articleFormData,
+      id: viewingPost?.id || articleFormData.id,
+      status: 'published',
+    };
+    const saved = savePost(payload);
+
+    if (saved) {
+      setViewingPost(saved);
+      setEditingPost(saved);
+      setArticleFormData({
+        id: saved.id,
+        status: 'published',
+        titleEs: saved.title?.es || saved.title || '',
+        titleEn: saved.title?.en || '',
+        category: saved.category || 'legal',
+        readTime: saved.readTime || 4,
+        image: saved.image || '',
+        excerptEs: saved.excerpt?.es || saved.excerpt || '',
+        excerptEn: saved.excerpt?.en || '',
+        contentEs: saved.content?.es || saved.content || '',
+        contentEn: saved.content?.en || '',
+      });
+    }
+    setEnglishWarningModal(false);
+    setIsEditMode(false); // Return to reading mode
+    setSaveSuccessMessage('¡Artículo publicado con éxito en Español e Inglés!');
+    setArticleSavedToast(true);
+    setTimeout(() => setArticleSavedToast(false), 4000);
   };
 
   // Contact form local state
@@ -302,9 +447,12 @@ export const AdminDashboard = () => {
 
   const filteredPosts = posts.filter((p) => {
     const matchCat = postCategoryFilter === 'all' || p.category === postCategoryFilter;
+    const matchStatus =
+      postStatusFilter === 'all' ||
+      (postStatusFilter === 'draft' ? p.status === 'draft' : p.status !== 'draft');
     const title = (p.title[lang] || p.title.es || '').toLowerCase();
     const matchSearch = !postSearch || title.includes(postSearch.toLowerCase());
-    return matchCat && matchSearch;
+    return matchCat && matchStatus && matchSearch;
   });
 
   return (
@@ -476,14 +624,26 @@ export const AdminDashboard = () => {
                     <span>Modo Edición</span>
                   </button>
                 ) : (
-                  <button
-                    type="button"
-                    onClick={handleSaveArticle}
-                    className="px-4 py-2 rounded-xl bg-[#153A26] hover:bg-[#0B1E14] text-white text-xs font-bold transition-all flex items-center gap-2 shadow-sm cursor-pointer"
-                  >
-                    <Save className="w-3.5 h-3.5 text-[#C59A47]" />
-                    <span>Guardar Cambios</span>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleSaveDraft}
+                      className="px-3.5 py-2 rounded-xl bg-[#FAF7F2] hover:bg-[#DFD5C4] border border-[#DFD5C4] text-xs font-bold text-[#153A26] flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer"
+                      title="Guardar como borrador"
+                    >
+                      <FileText className="w-3.5 h-3.5 text-[#C59A47]" />
+                      <span>Guardar Borrador</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleSaveAndPublish}
+                      className="px-4 py-2 rounded-xl bg-[#153A26] hover:bg-[#0B1E14] text-white text-xs font-bold transition-all flex items-center gap-2 shadow-sm cursor-pointer"
+                      title="Guardar y publicar (requiere inglés)"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5 text-[#C59A47]" />
+                      <span>Publicar</span>
+                    </button>
+                  </div>
                 )}
               </div>
             )}
@@ -506,28 +666,30 @@ export const AdminDashboard = () => {
                     {posts.length}
                   </p>
                 </div>
+                <div className="p-4 rounded-2xl bg-white border border-emerald-200 shadow-xs">
+                  <span className="text-[11px] font-bold text-emerald-800 uppercase tracking-wider block flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+                    Publicados
+                  </span>
+                  <p className="font-serif text-3xl font-extrabold text-emerald-700 mt-1">
+                    {posts.filter((p) => p.status !== 'draft').length}
+                  </p>
+                </div>
+                <div className="p-4 rounded-2xl bg-white border border-amber-200 shadow-xs">
+                  <span className="text-[11px] font-bold text-amber-800 uppercase tracking-wider block flex items-center gap-1">
+                    <AlertTriangle className="w-3 h-3 text-amber-600" />
+                    Borradores
+                  </span>
+                  <p className="font-serif text-3xl font-extrabold text-amber-600 mt-1">
+                    {posts.filter((p) => p.status === 'draft').length}
+                  </p>
+                </div>
                 <div className="p-4 rounded-2xl bg-white border border-[#DFD5C4] shadow-xs">
                   <span className="text-[11px] font-bold text-[#5C6B62] uppercase tracking-wider block">
                     Certeza Notarial
                   </span>
                   <p className="font-serif text-3xl font-extrabold text-[#153A26] mt-1">
                     {posts.filter((p) => p.category === 'legal').length}
-                  </p>
-                </div>
-                <div className="p-4 rounded-2xl bg-white border border-[#DFD5C4] shadow-xs">
-                  <span className="text-[11px] font-bold text-[#5C6B62] uppercase tracking-wider block">
-                    Fideicomisos
-                  </span>
-                  <p className="font-serif text-3xl font-extrabold text-[#C59A47] mt-1">
-                    {posts.filter((p) => p.category === 'foreigners').length}
-                  </p>
-                </div>
-                <div className="p-4 rounded-2xl bg-white border border-[#DFD5C4] shadow-xs">
-                  <span className="text-[11px] font-bold text-[#5C6B62] uppercase tracking-wider block">
-                    Plusvalía & Inv.
-                  </span>
-                  <p className="font-serif text-3xl font-extrabold text-[#8B6B23] mt-1">
-                    {posts.filter((p) => p.category === 'investment').length}
                   </p>
                 </div>
               </div>
@@ -545,18 +707,33 @@ export const AdminDashboard = () => {
                   />
                 </div>
 
-                <div className="flex items-center gap-2 w-full sm:w-auto">
-                  <label className="text-xs font-bold text-[#5C6B62]">Categoría:</label>
-                  <select
-                    value={postCategoryFilter}
-                    onChange={(e) => setPostCategoryFilter(e.target.value)}
-                    className="px-3 py-2 rounded-xl bg-[#FAF7F2] border border-[#DFD5C4] text-xs font-semibold text-[#0B1E14]"
-                  >
-                    <option value="all">Todas las categorías</option>
-                    <option value="legal">Certeza Notarial</option>
-                    <option value="foreigners">Fideicomisos</option>
-                    <option value="investment">Plusvalía</option>
-                  </select>
+                <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
+                  <div className="flex items-center gap-1.5">
+                    <label className="text-xs font-bold text-[#5C6B62]">Estado:</label>
+                    <select
+                      value={postStatusFilter}
+                      onChange={(e) => setPostStatusFilter(e.target.value)}
+                      className="px-3 py-2 rounded-xl bg-[#FAF7F2] border border-[#DFD5C4] text-xs font-semibold text-[#0B1E14]"
+                    >
+                      <option value="all">Todos los estados</option>
+                      <option value="published">🟢 Publicados</option>
+                      <option value="draft">🟡 Borradores</option>
+                    </select>
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <label className="text-xs font-bold text-[#5C6B62]">Categoría:</label>
+                    <select
+                      value={postCategoryFilter}
+                      onChange={(e) => setPostCategoryFilter(e.target.value)}
+                      className="px-3 py-2 rounded-xl bg-[#FAF7F2] border border-[#DFD5C4] text-xs font-semibold text-[#0B1E14]"
+                    >
+                      <option value="all">Todas las categorías</option>
+                      <option value="legal">Certeza Notarial</option>
+                      <option value="foreigners">Fideicomisos</option>
+                      <option value="investment">Plusvalía</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
@@ -584,13 +761,26 @@ export const AdminDashboard = () => {
                                 className="flex items-center gap-3 cursor-pointer group/title"
                               >
                                 <div className="w-12 h-12 rounded-xl overflow-hidden shrink-0 border border-[#DFD5C4]/60 bg-stone-100 group-hover/title:scale-105 transition-transform">
-                                  <img src={post.image} alt="" className="w-full h-full object-cover" />
+                                  <img src={post.image || 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80'} alt="" className="w-full h-full object-cover" />
                                 </div>
                                 <div className="min-w-0 max-w-md">
-                                  <p className="font-serif font-bold text-xs text-[#0B1E14] group-hover/title:text-[#153A26] line-clamp-1 transition-colors">
-                                    {post.title.es}
-                                  </p>
-                                  <p className="text-[11px] text-[#5C6B62] line-clamp-1 italic mt-0.5">
+                                  <div className="flex items-center gap-2 mb-0.5">
+                                    <p className="font-serif font-bold text-xs text-[#0B1E14] group-hover/title:text-[#153A26] line-clamp-1 transition-colors">
+                                      {post.title.es}
+                                    </p>
+                                    {post.status === 'draft' ? (
+                                      <span className="px-2 py-0.2 rounded-full text-[9px] font-bold bg-amber-100 text-amber-900 border border-amber-300 shrink-0 inline-flex items-center gap-1">
+                                        <AlertTriangle className="w-2.5 h-2.5 text-amber-600" />
+                                        Borrador
+                                      </span>
+                                    ) : (
+                                      <span className="px-2 py-0.2 rounded-full text-[9px] font-bold bg-emerald-100 text-emerald-900 border border-emerald-300 shrink-0 inline-flex items-center gap-1">
+                                        <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" />
+                                        Publicado
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-[11px] text-[#5C6B62] line-clamp-1 italic">
                                     {post.title.en || 'Sin traducción'}
                                   </p>
                                 </div>
@@ -719,19 +909,30 @@ export const AdminDashboard = () => {
                       <button
                         type="button"
                         onClick={() => setIsEditMode(false)}
-                        className="px-4 py-2 rounded-xl bg-[#FAF7F2] hover:bg-[#DFD5C4]/50 text-xs font-bold text-[#5C6B62] flex items-center gap-1.5 transition-colors cursor-pointer"
+                        className="px-3.5 py-2 rounded-xl bg-[#FAF7F2] hover:bg-[#DFD5C4]/50 text-xs font-bold text-[#5C6B62] flex items-center gap-1.5 transition-colors cursor-pointer"
                       >
                         <Eye className="w-4 h-4 text-[#C59A47]" />
-                        <span>Vista de Lectura</span>
+                        <span>Vista Lectura</span>
                       </button>
 
                       <button
                         type="button"
-                        onClick={handleSaveArticle}
-                        className="px-5 py-2 rounded-xl bg-[#153A26] hover:bg-[#0B1E14] text-white text-xs font-bold transition-all flex items-center gap-2 shadow-md cursor-pointer"
+                        onClick={handleSaveDraft}
+                        className="px-3.5 py-2 rounded-xl bg-[#FAF7F2] hover:bg-[#DFD5C4] border border-[#DFD5C4] text-xs font-bold text-[#153A26] flex items-center gap-1.5 transition-all shadow-2xs cursor-pointer"
+                        title="Guardar como borrador (no público)"
                       >
-                        <Save className="w-4 h-4 text-[#C59A47]" />
-                        <span>Guardar Cambios</span>
+                        <FileText className="w-3.5 h-3.5 text-[#C59A47]" />
+                        <span>Guardar Borrador</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleSaveAndPublish}
+                        className="px-4 py-2 rounded-xl bg-[#153A26] hover:bg-[#0B1E14] text-white text-xs font-bold transition-all flex items-center gap-2 shadow-sm cursor-pointer"
+                        title="Publicar en el blog (requiere inglés)"
+                      >
+                        <CheckCircle2 className="w-4 h-4 text-[#C59A47]" />
+                        <span>Guardar y Publicar</span>
                       </button>
                     </>
                   )}
@@ -741,18 +942,55 @@ export const AdminDashboard = () => {
               {articleSavedToast && (
                 <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold flex items-center gap-2 animate-fade-in shadow-xs">
                   <Check className="w-4 h-4 text-emerald-600 shrink-0" />
-                  <span>¡Cambios guardados con éxito en la base de datos y memoria!</span>
+                  <span>{saveSuccessMessage || '¡Cambios guardados con éxito en la base de datos!'}</span>
                 </div>
               )}
 
               {/* 1. VISTA DE LECTURA (DEFAULT / INITIAL STATE) */}
               {!isEditMode && (
                 <div className="bg-white rounded-3xl border border-[#DFD5C4] p-6 sm:p-10 shadow-xs max-w-4xl mx-auto space-y-6">
+                  
+                  {/* Draft Alert Banner if applicable */}
+                  {viewingPost.status === 'draft' && (
+                    <div className="p-4 rounded-2xl bg-amber-50 border border-amber-300 text-amber-900 text-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+                      <div className="flex items-center gap-2.5">
+                        <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0" />
+                        <div>
+                          <p className="font-bold">Artículo en estado Borrador</p>
+                          <p className="text-[11px] text-amber-800">
+                            Este artículo no está visible al público. Para publicarlo, entra en "Modo Edición" y completa los campos en inglés.
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsEditMode(true);
+                          setArticleLangTab('en');
+                        }}
+                        className="px-3 py-1.5 rounded-xl bg-[#153A26] hover:bg-[#0B1E14] text-[#E3B86C] font-bold text-xs shrink-0 transition-colors cursor-pointer"
+                      >
+                        Completar Inglés →
+                      </button>
+                    </div>
+                  )}
+
                   {/* Category & Meta */}
                   <div className="flex flex-wrap items-center gap-3">
                     <span className={`px-3 py-1 rounded-full text-xs font-bold shadow-2xs ${getCategoryBadge(viewingPost.category, t).color}`}>
                       {getCategoryBadge(viewingPost.category, t).label}
                     </span>
+                    {viewingPost.status === 'draft' ? (
+                      <span className="px-3 py-1 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-300 flex items-center gap-1.5 shadow-2xs">
+                        <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
+                        <span>Borrador (No público)</span>
+                      </span>
+                    ) : (
+                      <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300 flex items-center gap-1.5 shadow-2xs">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Publicado</span>
+                      </span>
+                    )}
                     <span className="text-xs font-semibold text-[#5C6B62] flex items-center gap-1">
                       <Clock className="w-3.5 h-3.5 text-[#C59A47]" />
                       {viewingPost.readTime} min de lectura
@@ -841,24 +1079,32 @@ export const AdminDashboard = () => {
                         </p>
                       </div>
 
-                      <div className="flex items-center rounded-xl bg-[#FAF7F2] p-1 border border-[#DFD5C4]">
+                      <div className="flex items-center rounded-xl bg-[#FAF7F2] p-1 border border-[#DFD5C4] gap-1">
                         <button
                           type="button"
                           onClick={() => setArticleLangTab('es')}
-                          className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                          className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
                             articleLangTab === 'es' ? 'bg-[#153A26] text-white shadow-xs' : 'text-[#5C6B62] hover:text-[#0B1E14]'
                           }`}
                         >
-                          🇲🇽 Edición Español
+                          <span>🇲🇽 Español</span>
+                          <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
                         </button>
                         <button
                           type="button"
                           onClick={() => setArticleLangTab('en')}
-                          className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                          className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
                             articleLangTab === 'en' ? 'bg-[#153A26] text-white shadow-xs' : 'text-[#5C6B62] hover:text-[#0B1E14]'
                           }`}
                         >
-                          🇺🇸 Edición Inglés
+                          <span>🇺🇸 Inglés</span>
+                          {checkEnglishCompleteness(articleFormData) ? (
+                            <span className="w-2 h-2 rounded-full bg-emerald-400" title="Traducción lista"></span>
+                          ) : (
+                            <span className="px-1.5 py-0.2 rounded-full text-[9px] font-extrabold bg-amber-200 text-amber-900" title="Requerido para publicar">
+                              Falta
+                            </span>
+                          )}
                         </button>
                       </div>
                     </div>
@@ -896,26 +1142,124 @@ export const AdminDashboard = () => {
                       </div>
                     </div>
 
-                    {/* Cover Image URL + Preview */}
-                    <div>
-                      <label className="block text-xs font-bold text-[#0B1E14] mb-1.5">
-                        URL de Imagen de Portada
-                      </label>
-                      <div className="flex gap-3 items-center">
-                        <input
-                          type="url"
-                          value={articleFormData.image}
-                          onChange={(e) => setArticleFormData({ ...articleFormData, image: e.target.value })}
-                          placeholder="https://images.unsplash.com/..."
-                          className="flex-1 px-3.5 py-2.5 rounded-xl bg-[#FAF7F2] border border-[#DFD5C4] text-xs"
-                          required
-                        />
-                        {articleFormData.image && (
-                          <div className="w-14 h-11 rounded-xl overflow-hidden shrink-0 border border-[#DFD5C4] bg-stone-100">
-                            <img src={articleFormData.image} alt="" className="w-full h-full object-cover" />
-                          </div>
-                        )}
+                    {/* Cover Image Upload & URL Selector */}
+                    <div className="bg-[#FAF7F2] p-4 sm:p-5 rounded-2xl border border-[#DFD5C4] space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <label className="block text-xs font-bold text-[#0B1E14]">
+                            Imagen de Portada
+                          </label>
+                          <p className="text-[11px] text-[#5C6B62]">
+                            Sube una imagen desde tu dispositivo o ingresa un enlace web.
+                          </p>
+                        </div>
+
+                        {/* Toggle Upload vs URL */}
+                        <div className="flex items-center gap-1 bg-white p-1 rounded-xl border border-[#DFD5C4] text-[11px] font-bold">
+                          <button
+                            type="button"
+                            onClick={() => setImageInputMode('upload')}
+                            className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
+                              imageInputMode === 'upload' ? 'bg-[#153A26] text-white shadow-xs' : 'text-[#5C6B62] hover:text-[#0B1E14]'
+                            }`}
+                          >
+                            <Upload className="w-3 h-3 text-[#C59A47]" />
+                            <span>Subir Archivo</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setImageInputMode('url')}
+                            className={`px-2.5 py-1 rounded-lg transition-all flex items-center gap-1 cursor-pointer ${
+                              imageInputMode === 'url' ? 'bg-[#153A26] text-white shadow-xs' : 'text-[#5C6B62] hover:text-[#0B1E14]'
+                            }`}
+                          >
+                            <ExternalLink className="w-3 h-3 text-[#C59A47]" />
+                            <span>Ingresar URL</span>
+                          </button>
+                        </div>
                       </div>
+
+                      {/* Current Image Preview if exists */}
+                      {articleFormData.image && (
+                        <div className="relative rounded-2xl overflow-hidden border border-[#DFD5C4] bg-stone-100 max-h-60 group shadow-xs">
+                          <img
+                            src={articleFormData.image}
+                            alt="Portada de publicación"
+                            className="w-full h-52 object-cover"
+                          />
+                          <div className="absolute top-3 right-3 flex items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => fileInputRef.current?.click()}
+                              className="px-3 py-1.5 rounded-xl bg-white/95 hover:bg-white text-[#0B1E14] text-xs font-bold shadow-md transition-all flex items-center gap-1.5 cursor-pointer backdrop-blur-xs"
+                            >
+                              <Upload className="w-3.5 h-3.5 text-[#C59A47]" />
+                              <span>Cambiar Imagen</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setArticleFormData((prev) => ({ ...prev, image: '' }))}
+                              className="p-1.5 rounded-xl bg-red-600/90 hover:bg-red-700 text-white text-xs font-bold shadow-md transition-all cursor-pointer backdrop-blur-xs"
+                              title="Eliminar imagen"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                          <div className="absolute bottom-2 left-3 bg-black/60 backdrop-blur-xs px-2.5 py-1 rounded-lg text-[10px] text-white font-medium flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                            <span>Imagen lista para la publicación</span>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Upload Dropzone */}
+                      {imageInputMode === 'upload' && (
+                        <div>
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            onChange={handleImageUpload}
+                            className="hidden"
+                          />
+                          {!articleFormData.image && (
+                            <div
+                              onClick={() => fileInputRef.current?.click()}
+                              className="border-2 border-dashed border-[#C59A47]/60 hover:border-[#C59A47] bg-white hover:bg-[#FAF7F2] p-6 rounded-2xl flex flex-col items-center justify-center text-center cursor-pointer transition-all group"
+                            >
+                              <div className="w-12 h-12 rounded-2xl bg-[#153A26]/10 text-[#153A26] flex items-center justify-center mb-2 group-hover:scale-110 transition-transform">
+                                <ImagePlus className="w-6 h-6 text-[#C59A47]" />
+                              </div>
+                              <p className="text-xs font-bold text-[#0B1E14]">
+                                {isCompressingImage ? 'Optimizando imagen...' : 'Haz clic aquí para seleccionar una foto de tu equipo'}
+                              </p>
+                              <p className="text-[11px] text-[#5C6B62] mt-0.5">
+                                Formatos JPG, PNG, WEBP. Se optimizará automáticamente para carga ultra rápida.
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* URL Input */}
+                      {imageInputMode === 'url' && (
+                        <div className="space-y-1.5">
+                          <input
+                            type="url"
+                            value={articleFormData.image}
+                            onChange={(e) => setArticleFormData({ ...articleFormData, image: e.target.value })}
+                            placeholder="https://images.unsplash.com/... o enlace directo de la imagen"
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-white border border-[#DFD5C4] text-xs text-[#0B1E14] focus:ring-1 focus:ring-[#C59A47]"
+                          />
+                        </div>
+                      )}
+
+                      {imageUploadError && (
+                        <p className="text-xs text-red-600 font-bold flex items-center gap-1">
+                          <AlertCircle className="w-3.5 h-3.5" />
+                          <span>{imageUploadError}</span>
+                        </p>
+                      )}
                     </div>
 
                     {/* Bilingual Titles */}
@@ -1030,7 +1374,7 @@ export const AdminDashboard = () => {
                         Cancelar Edición
                       </button>
 
-                      <div className="flex items-center gap-3">
+                      <div className="flex flex-wrap items-center gap-3">
                         <button
                           type="button"
                           onClick={() => setIsEditMode(false)}
@@ -1041,17 +1385,87 @@ export const AdminDashboard = () => {
                         </button>
 
                         <button
+                          type="button"
+                          onClick={handleSaveDraft}
+                          className="px-5 py-2.5 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-bold transition-all flex items-center gap-2 shadow-2xs cursor-pointer"
+                        >
+                          <Save className="w-3.5 h-3.5 text-amber-600" />
+                          <span>Guardar como Borrador</span>
+                        </button>
+
+                        <button
                           type="submit"
                           className="px-6 py-2.5 rounded-xl bg-[#153A26] hover:bg-[#0B1E14] text-white text-xs font-bold transition-all flex items-center gap-2 shadow-sm hover:shadow cursor-pointer"
                         >
-                          <Save className="w-3.5 h-3.5 text-[#C59A47]" />
-                          <span>Guardar y Publicar Cambios</span>
+                          <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                          <span>Guardar y Publicar</span>
                         </button>
                       </div>
                     </div>
 
                   </div>
                 </form>
+              )}
+
+              {/* Modal advertencia: Falta versión en inglés */}
+              {englishWarningModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in">
+                  <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl border border-[#DFD5C4] relative space-y-5 animate-scale-in">
+                    <button
+                      type="button"
+                      onClick={() => setEnglishWarningModal(false)}
+                      className="absolute top-5 right-5 p-2 rounded-full text-[#5C6B62] hover:bg-[#FAF7F2] transition-colors cursor-pointer"
+                      title="Cerrar"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+
+                    <div className="flex items-start gap-4">
+                      <div className="w-12 h-12 rounded-2xl bg-amber-100 border border-amber-200 flex items-center justify-center shrink-0">
+                        <AlertTriangle className="w-6 h-6 text-amber-600" />
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-serif font-bold text-[#0B1E14]">
+                          Versión en inglés requerida
+                        </h3>
+                        <p className="text-xs text-[#5C6B62] mt-1 leading-relaxed">
+                          Para mantener la calidad y el estándar bilingüe de la web, no es posible <strong>publicar abiertamente</strong> un artículo sin su título y contenido en inglés.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="p-4 rounded-2xl bg-[#FAF7F2] border border-[#DFD5C4] text-xs text-[#0B1E14] space-y-2">
+                      <div className="font-bold flex items-center gap-1.5 text-amber-800">
+                        <Info className="w-4 h-4 text-amber-600 shrink-0" />
+                        <span>¿Qué deseas hacer con esta publicación?</span>
+                      </div>
+                      <p className="text-[#5C6B62] leading-relaxed">
+                        Puedes <strong>guardarlo como borrador</strong> para no perder tu avance y publicarlo más tarde, o ir a la pestaña de inglés para redactar la traducción ahora.
+                      </p>
+                    </div>
+
+                    <div className="flex flex-col-reverse sm:flex-row items-center justify-end gap-3 pt-2">
+                      <button
+                        type="button"
+                        onClick={handleSaveDraft}
+                        className="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-bold transition-all cursor-pointer text-center"
+                      >
+                        Guardar como Borrador
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEnglishWarningModal(false);
+                          setArticleLangTab('en');
+                        }}
+                        className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-[#153A26] hover:bg-[#0B1E14] text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow cursor-pointer"
+                      >
+                        <span>Completar Inglés →</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
           )}

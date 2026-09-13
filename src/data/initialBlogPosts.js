@@ -1,6 +1,7 @@
 export const initialBlogPosts = [
   {
     id: 'post-1',
+    status: 'published',
     category: 'foreigners',
     date: '2026-08-20',
     readTime: 4,
@@ -51,6 +52,7 @@ Trusts are granted for 50-year renewable terms in perpetuity. At **Nayarit Real 
   },
   {
     id: 'post-2',
+    status: 'published',
     category: 'legal',
     date: '2026-07-15',
     readTime: 3,
@@ -91,6 +93,7 @@ At **Nayarit Real Estate**, we systematically audit these 5 pillars:
   },
   {
     id: 'post-3',
+    status: 'published',
     category: 'legal',
     date: '2026-06-05',
     readTime: 4,
@@ -107,12 +110,14 @@ At **Nayarit Real Estate**, we systematically audit these 5 pillars:
     content: {
       es: `
 ### ¿Qué diferencia a una tierra ejidal de una propiedad privada?
+
 La tierra ejidal pertenece al núcleo agrario (asamblea ejidal) y se rige por la Ley Agraria, no por el Código Civil. 
 * **Una "Constancia de Posesión" NO es una escritura:** No se puede inscribir en el Registro Público de la Propiedad.
 * **Riesgo latente:** Las asambleas ejidales y sucesores con derecho de tanto pueden reclamar la restitución del predio en tribunales agrarios.
 * **No permite fideicomiso bancario:** Ninguna institución fiduciaria autoriza créditos o fideicomisos sobre tierras ejidales no regularizadas.
 
 ### El proceso legal seguro: Adopción de Dominio Pleno
+
 Para que un terreno de origen ejidal pueda comercializarse con total tranquilidad, debe haberse concluido el proceso formal de **Adopción de Dominio Pleno**:
 1. Asamblea Ejidal con formalidades especiales y presencia de fedatario público y de la Procuraduría Agraria.
 2. Baja ante el Registro Agrario Nacional (RAN).
@@ -123,12 +128,14 @@ En **Nayarit Real Estate** comercializamos exclusivamente propiedades con Domini
       `,
       en: `
 ### Understanding the Difference
+
 Ejido lands are communal agrarian parcels governed by Mexican Agrarian Law rather than Civil Codes:
 * **A "Possession Certificate" is NOT a deed:** It cannot be registered with the Public Property Registry (RPP).
 * **Inherent Risks:** Community assemblies or heirs holding statutory rights of first refusal may contest occupancy before agrarian tribunals.
 * **Ineligible for Bank Trusts:** Mexican banks cannot legally issue fideicomiso deeds on non-regularized agrarian plots.
 
 ### The Lawful Solution: Adoption of Full Ownership (Dominio Pleno)
+
 For agrarian parcels to transition safely into private commerce, the legal mechanism of **Dominio Pleno** must be completed:
 1. Formal Assembly convened before a Mexican Public Notary and Agrarian Ombudsman officials.
 2. De-registration from the National Agrarian Registry (RAN).
@@ -141,6 +148,7 @@ At **Nayarit Real Estate**, we exclusively transact properties holding verified 
   },
   {
     id: 'post-4',
+    status: 'published',
     category: 'investment',
     date: '2026-04-18',
     readTime: 4,

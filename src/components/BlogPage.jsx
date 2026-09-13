@@ -37,9 +37,10 @@ export const BlogPage = () => {
     { id: 'investment', label: t.blog.catInvestment },
   ];
 
-  // Filter posts
+  // Filter posts (hide drafts from regular visitors)
   const filteredPosts = useMemo(() => {
     return posts.filter((post) => {
+      if (!isAdmin && post.status === 'draft') return false;
       const matchCat = selectedCategory === 'all' || post.category === selectedCategory;
       const title = (post.title[lang] || post.title.es).toLowerCase();
       const excerpt = (post.excerpt[lang] || post.excerpt.es).toLowerCase();
@@ -48,7 +49,7 @@ export const BlogPage = () => {
       const matchSearch = !q || title.includes(q) || excerpt.includes(q) || content.includes(q);
       return matchCat && matchSearch;
     });
-  }, [posts, selectedCategory, searchQuery, lang]);
+  }, [posts, selectedCategory, searchQuery, lang, isAdmin]);
 
   return (
     <div className="w-full">
@@ -186,11 +187,16 @@ export const BlogPage = () => {
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60 group-hover:opacity-40 transition-opacity"></div>
 
-                      {/* Category Pill */}
-                      <div className="absolute top-4 left-4">
+                      {/* Category Pill & Draft badge */}
+                      <div className="absolute top-4 left-4 flex items-center gap-2">
                         <span className={`px-3 py-1 rounded-full text-xs font-bold shadow-md ${badge.color}`}>
                           {badge.label}
                         </span>
+                        {post.status === 'draft' && (
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500 text-white shadow-md">
+                            Borrador
+                          </span>
+                        )}
                       </div>
 
                       {/* Reading Time */}

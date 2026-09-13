@@ -17,8 +17,8 @@ export const LatestBlogSection = () => {
     deletePost,
   } = useBlog();
 
-  // Show only the 3 latest posts on the landing page
-  const latestPosts = posts.slice(0, 3);
+  // Show only the 3 latest published posts on the landing page (or include drafts if admin)
+  const latestPosts = posts.filter((p) => isAdmin || p.status !== 'draft').slice(0, 3);
 
   return (
     <section id="blog" className="py-20 sm:py-24 bg-[#FAF7F2] border-t border-[#DFD5C4] relative">
