@@ -13,6 +13,11 @@ ServerSignature Off
 
 <IfModule mod_rewrite.c>
   RewriteEngine On
+
+  # Reject sensitive or deployment-only paths before the SPA fallback. This
+  # returns an explicit 403 even when the requested file does not exist.
+  RewriteRule ^(?:nre-private\.php|\.env(?:\..*)?|composer\.(?:json|lock)|package(?:-lock)?\.json|database(?:/|$)|\.git(?:/|$)|\.github(?:/|$)) - [F,L,NC]
+
   RewriteCond %{REQUEST_FILENAME} -f [OR]
   RewriteCond %{REQUEST_FILENAME} -d
   RewriteRule ^ - [L]
