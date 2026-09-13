@@ -339,6 +339,8 @@ export const AdminDashboard = () => {
     setTimeout(() => setArticleSavedToast(false), 4000);
   };
 
+  const handleSaveArticle = handleSaveAndPublish;
+
   // Contact form local state
   const [contactForm, setContactForm] = useState(contactInfo);
   const [contactSaved, setContactSaved] = useState(false);
@@ -1054,7 +1056,7 @@ export const AdminDashboard = () => {
 
               {/* 2. MODO EDICIÓN COMPLETO (FULL-SCREEN EDITOR) */}
               {isEditMode && (
-                <form onSubmit={handleSaveArticle} className="space-y-6 max-w-5xl mx-auto">
+                <form onSubmit={handleSaveAndPublish} className="space-y-6 max-w-5xl mx-auto">
                   <div className="bg-white rounded-3xl border border-[#DFD5C4] p-6 sm:p-8 shadow-xs space-y-6">
                     
                     {/* Top Tabs to switch language fields */}
