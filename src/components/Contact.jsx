@@ -20,7 +20,7 @@ export const Contact = () => {
   )}`;
 
   return (
-    <section id="contacto" className="py-20 bg-[#FAF7F2] relative">
+    <section id="contacto" className="pt-20 pb-0 sm:py-20 bg-[#FAF7F2] relative">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
         <div className="text-center max-w-xl mx-auto mb-12">

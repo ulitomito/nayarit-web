@@ -3,8 +3,23 @@
 @tailwind utilities;
 
 @layer base {
+  html,
+  body,
+  #root {
+    width: 100%;
+    min-height: 100%;
+    margin: 0;
+  }
+
+  html {
+    background: #0B1E14;
+    overflow-x: clip;
+  }
+
   body {
     @apply bg-[#FAF7F2] text-[#1A211D] antialiased;
+    min-height: 100dvh;
+    overflow-x: clip;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 
@@ -56,6 +71,17 @@
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #A67D33;
+}
+
+@media (max-width: 639px) {
+  html {
+    scrollbar-width: none;
+  }
+
+  ::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
 }
 
 /* Rich text editor and rendered article typography */
@@ -140,4 +166,3 @@
   pointer-events: none;
   display: block;
 }
-

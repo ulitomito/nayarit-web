@@ -29,7 +29,7 @@ function MainContent() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#FAF7F2] text-[#1A211D]">
+    <div className="min-h-[100dvh] w-full overflow-x-clip flex flex-col bg-[#FAF7F2] text-[#1A211D]">
       {/* Discreet Admin Top Bar when logged in as admin browsing the public site */}
       {isAdmin && (
         <div className="bg-[#153A26] text-white text-xs font-semibold py-2 px-4 sm:px-6 flex items-center justify-between z-50 border-b border-[#C59A47]/40">

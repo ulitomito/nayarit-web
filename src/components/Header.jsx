@@ -119,7 +119,7 @@ export const Header = () => {
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 transition-all duration-300">
+    <header className="fixed top-0 left-0 right-0 z-50 overflow-x-clip transition-all duration-300">
       <div
         className={`w-full transition-all duration-300 ${
           isScrolled
@@ -127,26 +127,26 @@ export const Header = () => {
             : 'bg-[#FAF7F2]/90 backdrop-blur-md border-b border-[#DFD5C4]/60 py-2.5 sm:py-3'
         }`}
       >
-        <div className="w-[95%] max-w-[1750px] mx-auto px-2 sm:px-4 lg:px-6 flex items-center justify-between">
+        <div className="w-full max-w-[1750px] mx-auto px-2 sm:px-4 lg:px-6 flex items-center justify-between gap-2">
           {/* Official Brand Logo - Sleek, Compact and Elegant */}
           <a
             href="#hero"
             onClick={handleLogoClick}
-            className="flex items-center gap-2.5 sm:gap-3 group shrink-0 cursor-pointer"
+            className="flex min-w-0 flex-1 sm:flex-none items-center gap-2 sm:gap-3 group cursor-pointer"
           >
             <div className="relative overflow-hidden rounded-xl border border-[#C59A47] bg-white shadow-sm shrink-0">
               <img
                 src="/assets/logo-emblem.jpg"
                 alt="Nayarit Real Estate"
-                className="w-10 h-10 sm:w-11 sm:h-11 object-cover transition-transform duration-300 group-hover:scale-105"
+                className="w-9 h-9 sm:w-11 sm:h-11 object-cover transition-transform duration-300 group-hover:scale-105"
               />
             </div>
 
-            <div className="flex flex-col justify-center">
-              <span className="font-serif text-base sm:text-lg md:text-xl font-extrabold tracking-tight text-[#0B1E14] leading-none group-hover:text-[#153A26] transition-colors">
+            <div className="min-w-0 flex flex-col justify-center">
+              <span className="whitespace-nowrap font-serif text-[13px] max-[359px]:text-[11px] min-[390px]:text-sm sm:text-lg md:text-xl font-extrabold tracking-tight text-[#0B1E14] leading-none group-hover:text-[#153A26] transition-colors">
                 NAYARIT REAL ESTATE
               </span>
-              <span className="text-[8px] sm:text-[9px] md:text-[10px] text-[#C59A47] font-bold tracking-[0.16em] sm:tracking-[0.2em] uppercase mt-1 leading-none">
+              <span className="whitespace-nowrap text-[6px] max-[359px]:text-[5px] min-[390px]:text-[7px] sm:text-[9px] md:text-[10px] text-[#C59A47] font-bold tracking-[0.1em] sm:tracking-[0.2em] uppercase mt-1 leading-none">
                 {t.nav.slogan}
               </span>
             </div>
@@ -177,29 +177,29 @@ export const Header = () => {
           </nav>
 
           {/* Right Actions: Intuitive Flag Language Selector + WhatsApp Button */}
-          <div className="flex items-center gap-2.5 sm:gap-3.5">
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-3.5">
             {/* Intuitive Flag-based Language Selector Dropdown */}
             <div className="relative" ref={langDropdownRef}>
               <button
                 type="button"
                 onClick={() => setLangMenuOpen((prev) => !prev)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white hover:bg-[#FAF7F2] border border-[#DFD5C4] hover:border-[#C59A47] shadow-sm text-xs font-semibold text-[#0B1E14] transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#C59A47]/40"
+                className="flex items-center gap-1.5 px-2 sm:gap-2 sm:px-3 py-1.5 rounded-xl bg-white hover:bg-[#FAF7F2] border border-[#DFD5C4] hover:border-[#C59A47] shadow-sm text-xs font-semibold text-[#0B1E14] transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#C59A47]/40"
                 aria-label={lang === 'es' ? 'Cambiar a idioma inglés o español' : 'Change language to English or Spanish'}
                 aria-expanded={langMenuOpen}
               >
                 {lang === 'es' ? (
                   <>
-                    <MexicoFlag className="w-5 h-3.5" />
-                    <span className="font-bold text-xs">Español</span>
+                    <MexicoFlag className="w-[18px] h-3 sm:w-5 sm:h-3.5" />
+                    <span className="font-bold text-[11px] max-[359px]:hidden sm:text-xs">Español</span>
                   </>
                 ) : (
                   <>
-                    <USFlag className="w-5 h-3.5" />
-                    <span className="font-bold text-xs">English</span>
+                    <USFlag className="w-[18px] h-3 sm:w-5 sm:h-3.5" />
+                    <span className="font-bold text-[11px] max-[359px]:hidden sm:text-xs">English</span>
                   </>
                 )}
                 <ChevronDown
-                  className={`w-3.5 h-3.5 text-[#5C6B62] transition-transform duration-200 ${
+                  className={`w-3 h-3 max-[359px]:hidden sm:w-3.5 sm:h-3.5 text-[#5C6B62] transition-transform duration-200 ${
                     langMenuOpen ? 'rotate-180' : ''
                   }`}
                 />
@@ -257,7 +257,7 @@ export const Header = () => {
               href={headerWhatsappUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full bg-[#25D366] hover:bg-[#1EBE5D] text-white text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all transform hover:scale-105 cursor-pointer"
+              className="hidden sm:inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#25D366] hover:bg-[#1EBE5D] text-white text-sm font-bold shadow-md hover:shadow-lg transition-all transform hover:scale-105 cursor-pointer"
             >
               <i className="fa-brands fa-whatsapp text-base"></i>
               <span className="hidden sm:inline">{t.nav.whatsappBtn}</span>
@@ -351,4 +351,3 @@ export const Header = () => {
     </header>
   );
 };
-
