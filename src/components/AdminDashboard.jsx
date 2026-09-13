@@ -540,16 +540,7 @@ export const AdminDashboard = () => {
         </div>
 
         {/* Sidebar Footer Actions */}
-        <div className="p-4 border-t border-white/10 space-y-2">
-          <button
-            type="button"
-            onClick={() => navigateToLanding('hero')}
-            className="w-full py-2.5 px-3.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer border border-white/10"
-          >
-            <Eye className="w-3.5 h-3.5 text-[#C59A47]" />
-            <span>Ver Sitio Web Público</span>
-          </button>
-
+        <div className="p-4 border-t border-white/10">
           <button
             type="button"
             onClick={() => {
