@@ -37,19 +37,28 @@ export const BlogPage = () => {
     { id: 'investment', label: t.blog.catInvestment },
   ];
 
+  const getSafeText = (field, currentLang) => {
+    if (!field) return '';
+    if (typeof field === 'string') return field;
+    return field[currentLang] || field.es || field.en || '';
+  };
+
   // Filter posts (hide drafts from regular visitors)
+  const publishedPosts = useMemo(() => {
+    return posts.filter((p) => isAdmin || p.status !== 'draft');
+  }, [posts, isAdmin]);
+
   const filteredPosts = useMemo(() => {
-    return posts.filter((post) => {
-      if (!isAdmin && post.status === 'draft') return false;
+    return publishedPosts.filter((post) => {
       const matchCat = selectedCategory === 'all' || post.category === selectedCategory;
-      const title = (post.title[lang] || post.title.es).toLowerCase();
-      const excerpt = (post.excerpt[lang] || post.excerpt.es).toLowerCase();
-      const content = (post.content[lang] || post.content.es).toLowerCase();
+      const title = getSafeText(post.title, lang).toLowerCase();
+      const excerpt = getSafeText(post.excerpt, lang).toLowerCase();
+      const content = getSafeText(post.content, lang).toLowerCase();
       const q = searchQuery.toLowerCase().trim();
       const matchSearch = !q || title.includes(q) || excerpt.includes(q) || content.includes(q);
       return matchCat && matchSearch;
     });
-  }, [posts, selectedCategory, searchQuery, lang, isAdmin]);
+  }, [publishedPosts, selectedCategory, searchQuery, lang]);
 
   return (
     <div className="w-full">
@@ -97,8 +106,8 @@ export const BlogPage = () => {
                 const isActive = selectedCategory === cat.id;
                 const count =
                   cat.id === 'all'
-                    ? posts.length
-                    : posts.filter((p) => p.category === cat.id).length;
+                    ? publishedPosts.length
+                    : publishedPosts.filter((p) => p.category === cat.id).length;
 
                 return (
                   <button
@@ -215,11 +224,11 @@ export const BlogPage = () => {
                         </div>
 
                         <h3 className="font-serif text-xl sm:text-2xl font-bold text-[#0B1E14] group-hover:text-[#153A26] transition-colors line-clamp-2 leading-snug mb-3">
-                          {post.title[lang] || post.title.es}
+                          {getSafeText(post.title, lang)}
                         </h3>
 
                         <p className="text-sm text-[#5C6B62] line-clamp-3 leading-relaxed">
-                          {post.excerpt[lang] || post.excerpt.es}
+                          {getSafeText(post.excerpt, lang)}
                         </p>
                       </div>
 

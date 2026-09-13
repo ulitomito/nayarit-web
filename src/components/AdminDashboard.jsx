@@ -48,8 +48,8 @@ const compressImageFile = (file) => {
     reader.onload = (e) => {
       const img = new Image();
       img.onload = () => {
-        const maxWidth = 1600;
-        const maxHeight = 1200;
+        const maxWidth = 1280;
+        const maxHeight = 850;
         let { width, height } = img;
 
         if (width > maxWidth || height > maxHeight) {
@@ -69,7 +69,7 @@ const compressImageFile = (file) => {
         ctx.drawImage(img, 0, 0, width, height);
 
         // Convert to high efficiency JPEG
-        const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.78);
         resolve(dataUrl);
       };
       img.onerror = () => reject(new Error('No se pudo decodificar la imagen'));

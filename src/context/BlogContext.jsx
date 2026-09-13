@@ -236,6 +236,45 @@ export const BlogProvider = ({ children }) => {
     };
   }, [isAdmin]);
 
+  // Cross-tab synchronization: when another tab updates localStorage, sync state across all tabs in real time!
+  useEffect(() => {
+    const handleStorageSync = (e) => {
+      if (e.key === 'nayarit_blog_posts' && e.newValue) {
+        try {
+          const freshPosts = JSON.parse(e.newValue);
+          if (Array.isArray(freshPosts)) {
+            setPosts(freshPosts);
+          }
+        } catch (err) {
+          console.error('Error syncing posts across tabs', err);
+        }
+      }
+      if (e.key === 'nayarit_destinations' && e.newValue) {
+        try {
+          const freshDest = JSON.parse(e.newValue);
+          if (Array.isArray(freshDest)) {
+            setDestinations(freshDest);
+          }
+        } catch (err) {
+          console.error('Error syncing destinations across tabs', err);
+        }
+      }
+      if (e.key === 'nayarit_contact_info' && e.newValue) {
+        try {
+          const freshContact = JSON.parse(e.newValue);
+          if (freshContact) {
+            setContactInfo(freshContact);
+          }
+        } catch (err) {
+          console.error('Error syncing contact across tabs', err);
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageSync);
+    return () => window.removeEventListener('storage', handleStorageSync);
+  }, []);
+
   // Persist posts
   useEffect(() => {
     try {
@@ -324,8 +363,8 @@ export const BlogProvider = ({ children }) => {
     let savedArticle = null;
 
     if (targetId) {
-      setPosts((prev) =>
-        prev.map((p) => {
+      setPosts((prev) => {
+        const next = prev.map((p) => {
           if (p.id === targetId) {
             savedArticle = {
               ...p,
@@ -350,8 +389,15 @@ export const BlogProvider = ({ children }) => {
             return savedArticle;
           }
           return p;
-        })
-      );
+        });
+
+        try {
+          localStorage.setItem('nayarit_blog_posts', JSON.stringify(next));
+        } catch (err) {
+          console.error('Synchronous save error', err);
+        }
+        return next;
+      });
     } else {
       savedArticle = {
         id: `post-${Date.now()}`,
@@ -365,7 +411,16 @@ export const BlogProvider = ({ children }) => {
         excerpt: { es: postData.excerptEs || '', en: postData.excerptEn || '' },
         content: { es: postData.contentEs || '', en: postData.contentEn || '' },
       };
-      setPosts((prev) => [savedArticle, ...prev]);
+
+      setPosts((prev) => {
+        const next = [savedArticle, ...prev];
+        try {
+          localStorage.setItem('nayarit_blog_posts', JSON.stringify(next));
+        } catch (err) {
+          console.error('Synchronous save error', err);
+        }
+        return next;
+      });
     }
 
     if (savedArticle) {

@@ -17,6 +17,12 @@ export const LatestBlogSection = () => {
     deletePost,
   } = useBlog();
 
+  const getSafeText = (field, currentLang) => {
+    if (!field) return '';
+    if (typeof field === 'string') return field;
+    return field[currentLang] || field.es || field.en || '';
+  };
+
   // Show only the 3 latest published posts on the landing page (or include drafts if admin)
   const latestPosts = posts.filter((p) => isAdmin || p.status !== 'draft').slice(0, 3);
 
@@ -98,11 +104,11 @@ export const LatestBlogSection = () => {
                     </div>
 
                     <h3 className="font-serif text-xl sm:text-2xl font-bold text-[#0B1E14] group-hover:text-[#153A26] transition-colors line-clamp-2 leading-snug mb-3">
-                      {post.title[lang] || post.title.es}
+                      {getSafeText(post.title, lang)}
                     </h3>
 
                     <p className="text-sm text-[#5C6B62] line-clamp-3 leading-relaxed">
-                      {post.excerpt[lang] || post.excerpt.es}
+                      {getSafeText(post.excerpt, lang)}
                     </p>
                   </div>
 
