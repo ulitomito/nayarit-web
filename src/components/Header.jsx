@@ -143,15 +143,10 @@ export const Header = () => {
             </div>
 
             <div className="flex flex-col justify-center">
-              <div className="flex items-baseline gap-1.5 sm:gap-2">
-                <span className="font-serif text-lg sm:text-xl font-extrabold tracking-tight text-[#0B1E14] leading-none group-hover:text-[#153A26] transition-colors">
-                  NAYARIT
-                </span>
-                <span className="text-[10px] sm:text-[11px] font-extrabold tracking-[0.2em] text-[#C59A47] uppercase leading-none">
-                  REAL ESTATE
-                </span>
-              </div>
-              <span className="text-[8.5px] sm:text-[9.5px] text-[#5C6B62] font-semibold tracking-wider uppercase mt-1 leading-none">
+              <span className="font-serif text-base sm:text-lg md:text-xl font-extrabold tracking-tight text-[#0B1E14] leading-none group-hover:text-[#153A26] transition-colors">
+                NAYARIT REAL ESTATE
+              </span>
+              <span className="text-[8px] sm:text-[9px] md:text-[10px] text-[#C59A47] font-bold tracking-[0.16em] sm:tracking-[0.2em] uppercase mt-1 leading-none">
                 {t.nav.slogan}
               </span>
             </div>
