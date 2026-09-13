@@ -329,22 +329,22 @@ export const BlogProvider = ({ children }) => {
           if (p.id === targetId) {
             savedArticle = {
               ...p,
-              status: postData.status !== undefined ? postData.status : (p.status || 'published'),
+              status: postData.status !== undefined ? postData.status : (p.status || 'draft'),
               category: postData.category || p.category,
               readTime: postData.readTime || p.readTime,
               image: postData.image || p.image,
               author: postData.author || p.author,
               title: {
-                es: postData.titleEs !== undefined ? postData.titleEs : (p.title?.es || p.title),
-                en: postData.titleEn !== undefined ? postData.titleEn : (p.title?.en || p.title?.es || p.title),
+                es: postData.titleEs !== undefined ? postData.titleEs : (p.title?.es || (typeof p.title === 'string' ? p.title : '')),
+                en: postData.titleEn !== undefined ? postData.titleEn : (p.title?.en || ''),
               },
               excerpt: {
-                es: postData.excerptEs !== undefined ? postData.excerptEs : (p.excerpt?.es || p.excerpt),
-                en: postData.excerptEn !== undefined ? postData.excerptEn : (p.excerpt?.en || p.excerpt?.es || p.excerpt),
+                es: postData.excerptEs !== undefined ? postData.excerptEs : (p.excerpt?.es || (typeof p.excerpt === 'string' ? p.excerpt : '')),
+                en: postData.excerptEn !== undefined ? postData.excerptEn : (p.excerpt?.en || ''),
               },
               content: {
-                es: postData.contentEs !== undefined ? postData.contentEs : (p.content?.es || p.content),
-                en: postData.contentEn !== undefined ? postData.contentEn : (p.content?.en || p.content?.es || p.content),
+                es: postData.contentEs !== undefined ? postData.contentEs : (p.content?.es || (typeof p.content === 'string' ? p.content : '')),
+                en: postData.contentEn !== undefined ? postData.contentEn : (p.content?.en || ''),
               },
             };
             return savedArticle;
@@ -355,15 +355,15 @@ export const BlogProvider = ({ children }) => {
     } else {
       savedArticle = {
         id: `post-${Date.now()}`,
-        status: postData.status || 'published',
+        status: postData.status || 'draft',
         category: postData.category || 'legal',
         date: new Date().toISOString().split('T')[0],
         readTime: postData.readTime || 4,
-        author: postData.author || 'Equipo Legal Nayarit Real Estate',
-        image: postData.image || 'https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&w=1200&q=80',
-        title: { es: postData.titleEs, en: postData.titleEn || postData.titleEs },
-        excerpt: { es: postData.excerptEs, en: postData.excerptEn || postData.excerptEs },
-        content: { es: postData.contentEs, en: postData.contentEn || postData.contentEs },
+        author: postData.author || 'Lic. Uli NRE | Notarial & Legal Counsel',
+        image: postData.image || '',
+        title: { es: postData.titleEs || '', en: postData.titleEn || '' },
+        excerpt: { es: postData.excerptEs || '', en: postData.excerptEn || '' },
+        content: { es: postData.contentEs || '', en: postData.contentEn || '' },
       };
       setPosts((prev) => [savedArticle, ...prev]);
     }

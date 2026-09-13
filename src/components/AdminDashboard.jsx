@@ -195,19 +195,44 @@ export const AdminDashboard = () => {
     setArticleLangTab('es');
     setImageInputMode(post.image && post.image.startsWith('http') ? 'url' : 'upload');
     setImageUploadError('');
+
+    // If draft has duplicated text because of earlier fallback, treat English as empty
+    const isDuplicatedDraft = post.status === 'draft' && (
+      (post.title?.en && post.title?.en === post.title?.es) ||
+      (post.content?.en && post.content?.en === post.content?.es)
+    );
+
     setArticleFormData({
       id: post.id,
       status: post.status || 'published',
-      titleEs: post.title?.es || post.title || '',
-      titleEn: post.title?.en || '',
+      titleEs: post.title?.es || (typeof post.title === 'string' ? post.title : ''),
+      titleEn: isDuplicatedDraft ? '' : (post.title?.en || ''),
       category: post.category || 'legal',
       readTime: post.readTime || 4,
       image: post.image || '',
-      excerptEs: post.excerpt?.es || post.excerpt || '',
-      excerptEn: post.excerpt?.en || '',
-      contentEs: post.content?.es || post.content || '',
-      contentEn: post.content?.en || '',
+      excerptEs: post.excerpt?.es || (typeof post.excerpt === 'string' ? post.excerpt : ''),
+      excerptEn: isDuplicatedDraft ? '' : (post.excerpt?.en || ''),
+      contentEs: post.content?.es || (typeof post.content === 'string' ? post.content : ''),
+      contentEn: isDuplicatedDraft ? '' : (post.content?.en || ''),
     });
+  };
+
+  // Helper when clicking the English tab to ensure clean inputs on drafts
+  const handleSwitchToEnglishTab = () => {
+    // If it's a draft where English was duplicated from Spanish, clear it so inputs are clean
+    if (
+      articleFormData.status === 'draft' &&
+      articleFormData.titleEn &&
+      articleFormData.titleEn === articleFormData.titleEs
+    ) {
+      setArticleFormData((prev) => ({
+        ...prev,
+        titleEn: '',
+        excerptEn: '',
+        contentEn: '',
+      }));
+    }
+    setArticleLangTab('en');
   };
 
   const handleStartNewArticle = () => {
@@ -1118,7 +1143,7 @@ export const AdminDashboard = () => {
                         </button>
                         <button
                           type="button"
-                          onClick={() => setArticleLangTab('en')}
+                          onClick={handleSwitchToEnglishTab}
                           className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
                             articleLangTab === 'en' ? 'bg-[#153A26] text-white shadow-xs' : 'text-[#5C6B62] hover:text-[#0B1E14]'
                           }`}
@@ -1336,7 +1361,25 @@ export const AdminDashboard = () => {
                       <div>
                         <label className="block text-xs font-bold text-[#0B1E14] mb-1.5 flex items-center justify-between">
                           <span>Article Title (English)</span>
-                          <span className="text-[11px] text-[#5C6B62]">Language: English</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[11px] text-[#5C6B62]">Language: English</span>
+                            {(articleFormData.titleEn || articleFormData.excerptEn || articleFormData.contentEn) && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setArticleFormData((prev) => ({
+                                    ...prev,
+                                    titleEn: '',
+                                    excerptEn: '',
+                                    contentEn: '',
+                                  }))
+                                }
+                                className="text-[10px] text-amber-800 hover:text-red-700 underline font-semibold cursor-pointer transition-colors"
+                              >
+                                Limpiar campos en inglés
+                              </button>
+                            )}
+                          </div>
                         </label>
                         <input
                           type="text"
