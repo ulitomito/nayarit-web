@@ -488,9 +488,76 @@ export const AdminDashboard = () => {
   const [editingDestId, setEditingDestId] = useState(null);
   const [destForm, setDestForm] = useState({ image: '', tagEs: '', tagEn: '' });
   const [destSaved, setDestSaved] = useState(false);
+  const destFileInputRef = useRef(null);
+  const [destImageInputMode, setDestImageInputMode] = useState('upload'); // 'upload' | 'url'
+  const [draggingDestId, setDraggingDestId] = useState(null);
+  const [isCompressingDestImage, setIsCompressingDestImage] = useState(false);
+  const [destImageError, setDestImageError] = useState('');
+
+  const processDestImageFile = async (file) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setDestImageError('Por favor selecciona o arrastra una imagen válida (JPG, PNG o WEBP).');
+      return;
+    }
+    setDestImageError('');
+    setIsCompressingDestImage(true);
+    try {
+      const optimizedDataUrl = await compressImageFile(file);
+      setDestForm((prev) => ({ ...prev, image: optimizedDataUrl }));
+    } catch (err) {
+      console.error(err);
+      setDestImageError(err.message || 'Error al procesar la imagen');
+    } finally {
+      setIsCompressingDestImage(false);
+    }
+  };
+
+  const handleDestImageUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      processDestImageFile(file);
+    }
+    if (e.target) e.target.value = '';
+  };
+
+  const handleDestDragOver = (e, destId) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDraggingDestId(destId);
+  };
+
+  const handleDestDragLeave = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDraggingDestId(null);
+  };
+
+  const handleDestDrop = (e, destId) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDraggingDestId(null);
+    const file = e.dataTransfer?.files?.[0];
+    if (file) {
+      if (editingDestId !== destId) {
+        const dest = destinations.find((d) => d.id === destId);
+        if (dest) {
+          setEditingDestId(destId);
+          setDestForm({
+            image: dest.image,
+            tagEs: dest.tag?.es || dest.tag,
+            tagEn: dest.tag?.en || dest.tag,
+          });
+        }
+      }
+      processDestImageFile(file);
+    }
+  };
 
   const handleStartEditDest = (dest) => {
     setEditingDestId(dest.id);
+    setDestImageInputMode(dest.image && dest.image.startsWith('http') ? 'url' : 'upload');
+    setDestImageError('');
     setDestForm({
       image: dest.image,
       tagEs: dest.tag?.es || dest.tag,
@@ -1570,6 +1637,15 @@ export const AdminDashboard = () => {
           {/* TAB 2: DESTINOS */}
           {activeTab === 'destinations' && (
             <div className="space-y-6 animate-fade-in">
+              {/* Hidden file input for destination photo uploads */}
+              <input
+                ref={destFileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleDestImageUpload}
+                className="hidden"
+              />
+
               {destSaved && (
                 <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold flex items-center gap-2">
                   <Check className="w-4 h-4 text-emerald-600" />
@@ -1580,39 +1656,129 @@ export const AdminDashboard = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {destinations.map((dest) => {
                   const isEditing = editingDestId === dest.id;
+                  const isDraggingThis = draggingDestId === dest.id;
                   return (
                     <div
                       key={dest.id}
-                      className="bg-white rounded-3xl overflow-hidden border border-[#DFD5C4] shadow-xs flex flex-col justify-between"
+                      className="bg-white rounded-3xl overflow-hidden border border-[#DFD5C4] shadow-xs flex flex-col justify-between transition-all"
                     >
-                      <div className="h-44 overflow-hidden relative group">
+                      <div
+                        onDragOver={(e) => handleDestDragOver(e, dest.id)}
+                        onDragEnter={(e) => handleDestDragOver(e, dest.id)}
+                        onDragLeave={handleDestDragLeave}
+                        onDrop={(e) => handleDestDrop(e, dest.id)}
+                        className={`h-48 overflow-hidden relative group transition-all ${
+                          isDraggingThis ? 'ring-4 ring-[#153A26]' : ''
+                        }`}
+                      >
                         <img
                           src={isEditing ? destForm.image : dest.image}
                           alt={dest.name.es}
                           className="w-full h-full object-cover"
                         />
-                        <div className="absolute top-3 left-3">
+                        {isDraggingThis && (
+                          <div className="absolute inset-0 bg-[#153A26]/85 backdrop-blur-xs flex flex-col items-center justify-center text-white p-4 text-center z-20 animate-fade-in">
+                            <ImagePlus className="w-8 h-8 text-[#E3B86C] mb-1.5 animate-bounce" />
+                            <p className="text-xs font-bold">¡Suelta la foto aquí para asignarla a {dest.name.es}!</p>
+                          </div>
+                        )}
+                        <div className="absolute top-3 left-3 z-10">
                           <span className="px-3 py-1 rounded-full bg-black/60 backdrop-blur-md text-white text-[11px] font-bold">
                             {dest.name.es}
                           </span>
                         </div>
+                        {isEditing && (
+                          <div className="absolute top-3 right-3 z-10">
+                            <button
+                              type="button"
+                              onClick={() => destFileInputRef.current?.click()}
+                              className="px-2.5 py-1 rounded-xl bg-white/95 hover:bg-white text-[#0B1E14] text-[11px] font-bold shadow-md transition-all flex items-center gap-1 cursor-pointer"
+                              title="Subir nueva foto"
+                            >
+                              <Upload className="w-3 h-3 text-[#C59A47]" />
+                              <span>Cambiar Foto</span>
+                            </button>
+                          </div>
+                        )}
                       </div>
 
                       <div className="p-5 flex-1 flex flex-col justify-between">
                         {isEditing ? (
                           <div className="space-y-3">
-                            <div>
-                              <label className="block text-[10px] font-bold text-[#5C6B62] uppercase mb-1">
-                                URL de Imagen:
-                              </label>
-                              <input
-                                type="url"
-                                value={destForm.image}
-                                onChange={(e) => setDestForm({ ...destForm, image: e.target.value })}
-                                className="w-full px-3 py-1.5 rounded-xl bg-[#FAF7F2] border border-[#DFD5C4] text-xs"
-                                placeholder="https://images.unsplash.com/..."
-                              />
+                            {/* Image Mode Selector & Input */}
+                            <div className="space-y-1.5">
+                              <div className="flex items-center justify-between">
+                                <label className="block text-[10px] font-bold text-[#5C6B62] uppercase">
+                                  Foto del Destino
+                                </label>
+                                <div className="flex items-center gap-1 bg-[#FAF7F2] p-0.5 rounded-lg border border-[#DFD5C4] text-[10px] font-bold">
+                                  <button
+                                    type="button"
+                                    onClick={() => setDestImageInputMode('upload')}
+                                    className={`px-2 py-0.5 rounded-md transition-all flex items-center gap-1 cursor-pointer ${
+                                      destImageInputMode === 'upload'
+                                        ? 'bg-[#153A26] text-white shadow-2xs'
+                                        : 'text-[#5C6B62] hover:text-[#0B1E14]'
+                                    }`}
+                                  >
+                                    <Upload className="w-2.5 h-2.5 text-[#C59A47]" />
+                                    <span>Subir Foto</span>
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setDestImageInputMode('url')}
+                                    className={`px-2 py-0.5 rounded-md transition-all flex items-center gap-1 cursor-pointer ${
+                                      destImageInputMode === 'url'
+                                        ? 'bg-[#153A26] text-white shadow-2xs'
+                                        : 'text-[#5C6B62] hover:text-[#0B1E14]'
+                                    }`}
+                                  >
+                                    <ExternalLink className="w-2.5 h-2.5 text-[#C59A47]" />
+                                    <span>URL</span>
+                                  </button>
+                                </div>
+                              </div>
+
+                              {destImageInputMode === 'upload' ? (
+                                <div
+                                  onClick={() => destFileInputRef.current?.click()}
+                                  onDragOver={(e) => handleDestDragOver(e, dest.id)}
+                                  onDragEnter={(e) => handleDestDragOver(e, dest.id)}
+                                  onDragLeave={handleDestDragLeave}
+                                  onDrop={(e) => handleDestDrop(e, dest.id)}
+                                  className={`border-2 border-dashed p-3.5 rounded-xl flex flex-col items-center justify-center text-center cursor-pointer transition-all group ${
+                                    isDraggingThis
+                                      ? 'border-[#153A26] bg-emerald-50'
+                                      : 'border-[#C59A47]/60 hover:border-[#C59A47] bg-[#FAF7F2] hover:bg-white'
+                                  }`}
+                                >
+                                  <ImagePlus className="w-5 h-5 text-[#C59A47] mb-1 group-hover:scale-110 transition-transform" />
+                                  <p className="text-[11px] font-bold text-[#0B1E14]">
+                                    {isCompressingDestImage
+                                      ? 'Optimizando foto...'
+                                      : isDraggingThis
+                                      ? '¡Suelta la foto aquí!'
+                                      : 'Haz clic para subir una foto o arrástrala aquí'}
+                                  </p>
+                                  <p className="text-[10px] text-[#5C6B62] mt-0.5">
+                                    JPG, PNG o WEBP. Optimización automática.
+                                  </p>
+                                </div>
+                              ) : (
+                                <input
+                                  type="url"
+                                  value={destForm.image}
+                                  onChange={(e) => setDestForm({ ...destForm, image: e.target.value })}
+                                  className="w-full px-3 py-1.5 rounded-xl bg-[#FAF7F2] border border-[#DFD5C4] text-xs"
+                                  placeholder="https://images.unsplash.com/..."
+                                />
+                              )}
+
+                              {destImageError && (
+                                <p className="text-[10px] text-red-600 font-bold">{destImageError}</p>
+                              )}
                             </div>
+
                             <div>
                               <label className="block text-[10px] font-bold text-[#5C6B62] uppercase mb-1">
                                 Tag Descriptivo (ES):
@@ -1639,14 +1805,14 @@ export const AdminDashboard = () => {
                               <button
                                 type="button"
                                 onClick={() => handleSaveDest(dest.id)}
-                                className="flex-1 py-1.5 rounded-xl bg-[#153A26] text-white text-xs font-bold hover:bg-[#0B1E14]"
+                                className="flex-1 py-1.5 rounded-xl bg-[#153A26] text-white text-xs font-bold hover:bg-[#0B1E14] cursor-pointer"
                               >
                                 Guardar
                               </button>
                               <button
                                 type="button"
                                 onClick={() => setEditingDestId(null)}
-                                className="py-1.5 px-3 rounded-xl border border-[#DFD5C4] text-xs font-bold text-[#5C6B62]"
+                                className="py-1.5 px-3 rounded-xl border border-[#DFD5C4] text-xs font-bold text-[#5C6B62] cursor-pointer"
                               >
                                 Cancelar
                               </button>
